@@ -12,6 +12,7 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import com.example.fitswap.ui.common.ComingSoonScreen
+import com.example.fitswap.ui.common.MenuNavigationIcon
 import kotlinx.coroutines.launch
 
 @Composable
@@ -37,14 +38,24 @@ fun AppNavHost(navController: NavHostController = rememberNavController()) {
         }
     ) {
         NavHost(navController = navController, startDestination = Destination.Routines.route) {
-            topLevelDestinations.forEach { destination ->
-                composable(destination.route) {
-                    ComingSoonScreen(
-                        title = destination.label,
-                        onMenuClick = { scope.launch { drawerState.open() } }
-                    )
+            routineListScreen(
+                navController = navController,
+                onMenuClick = { scope.launch { drawerState.open() } }
+            )
+            routineDetailScreen(navController = navController)
+            editRoutineStubScreen(navController = navController)
+            activeExerciseStubScreen(navController = navController)
+
+            topLevelDestinations
+                .filter { it != Destination.Routines }
+                .forEach { destination ->
+                    composable(destination.route) {
+                        ComingSoonScreen(
+                            title = destination.label,
+                            navigationIcon = { MenuNavigationIcon(onMenuClick = { scope.launch { drawerState.open() } }) }
+                        )
+                    }
                 }
-            }
         }
     }
 }

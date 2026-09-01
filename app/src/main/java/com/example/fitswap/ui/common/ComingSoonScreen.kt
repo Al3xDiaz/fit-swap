@@ -11,8 +11,8 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 
 @Composable
-fun ComingSoonScreen(title: String, onMenuClick: () -> Unit) {
-    Scaffold(topBar = { AppTopBar(title = title, onMenuClick = onMenuClick) }) { innerPadding ->
+fun ComingSoonScreen(title: String, navigationIcon: @Composable () -> Unit = {}) {
+    Scaffold(topBar = { AppTopBar(title = title, navigationIcon = navigationIcon) }) { innerPadding ->
         Box(
             modifier = Modifier
                 .fillMaxSize()

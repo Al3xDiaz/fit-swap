@@ -1,6 +1,7 @@
 package com.example.fitswap.ui.common
 
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Menu
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
@@ -15,16 +16,26 @@ import androidx.compose.ui.platform.testTag
 @Composable
 fun AppTopBar(
     title: String,
-    onMenuClick: () -> Unit,
     modifier: Modifier = Modifier,
+    navigationIcon: @Composable () -> Unit = {},
 ) {
     TopAppBar(
         title = { Text(title, modifier = Modifier.testTag("appTopBarTitle")) },
-        navigationIcon = {
-            IconButton(onClick = onMenuClick) {
-                Icon(Icons.Default.Menu, contentDescription = "Abrir menú")
-            }
-        },
+        navigationIcon = navigationIcon,
         modifier = modifier
     )
+}
+
+@Composable
+fun MenuNavigationIcon(onMenuClick: () -> Unit) {
+    IconButton(onClick = onMenuClick) {
+        Icon(Icons.Default.Menu, contentDescription = "Abrir menú")
+    }
+}
+
+@Composable
+fun BackNavigationIcon(onBack: () -> Unit) {
+    IconButton(onClick = onBack) {
+        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Volver")
+    }
 }
