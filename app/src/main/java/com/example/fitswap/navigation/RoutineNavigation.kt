@@ -6,12 +6,15 @@ import androidx.navigation.NavHostController
 import androidx.navigation.NavType
 import androidx.navigation.compose.composable
 import androidx.navigation.navArgument
+import androidx.compose.runtime.getValue
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.example.fitswap.ui.common.BackNavigationIcon
 import com.example.fitswap.ui.common.ComingSoonScreen
 import com.example.fitswap.ui.screens.activeworkout.ActiveExerciseScreen
 import com.example.fitswap.ui.screens.activeworkout.NotesScreen
 import com.example.fitswap.ui.screens.activeworkout.SessionMenuScreen
 import com.example.fitswap.ui.screens.activeworkout.SwapExerciseScreen
+import com.example.fitswap.ui.screens.routines.EditRoutineScreen
 import com.example.fitswap.ui.screens.routines.RoutineDetailScreen
 import com.example.fitswap.ui.screens.routines.RoutineListScreen
 
@@ -62,14 +65,28 @@ fun NavGraphBuilder.routineDetailScreen(navController: NavHostController) {
     }
 }
 
-fun NavGraphBuilder.editRoutineStubScreen(navController: NavHostController) {
+fun NavGraphBuilder.editRoutineScreen(navController: NavHostController) {
     composable(
         route = "editRoutine/{$ROUTINE_ID_ARG}",
         arguments = listOf(navArgument(ROUTINE_ID_ARG) { type = NavType.StringType })
-    ) {
-        ComingSoonScreen(
-            title = "Editar rutina",
-            navigationIcon = { BackNavigationIcon(onBack = { navController.popBackStack() }) }
+    ) { backStackEntry ->
+        val pickedExerciseId by backStackEntry.savedStateHandle
+            .getStateFlow<String?>(PICKED_EXERCISE_ID_KEY, null)
+            .collectAsStateWithLifecycle()
+
+        EditRoutineScreen(
+            onBack = { navController.popBackStack() },
+            onRoutineDeleted = {
+                // No usar popBackStack(): si se llegó acá vía Detalle de rutina, esa pantalla
+                // quedaría observando una rutina que ya no existe. Volver siempre a Rutinas.
+                navController.navigate(Destination.Routines.route) {
+                    popUpTo(Destination.Routines.route) { inclusive = true }
+                    launchSingleTop = true
+                }
+            },
+            onPickExercise = { openExercisePicker(navController) },
+            pickedExerciseId = pickedExerciseId,
+            onPickedExerciseConsumed = { backStackEntry.savedStateHandle[PICKED_EXERCISE_ID_KEY] = null },
         )
     }
 }

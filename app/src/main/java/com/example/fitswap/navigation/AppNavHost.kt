@@ -43,7 +43,7 @@ fun AppNavHost(navController: NavHostController = rememberNavController()) {
                 onMenuClick = { scope.launch { drawerState.open() } }
             )
             routineDetailScreen(navController = navController)
-            editRoutineStubScreen(navController = navController)
+            editRoutineScreen(navController = navController)
             activeExerciseScreen(navController = navController)
             swapExerciseScreen(navController = navController)
             notesScreen(navController = navController)
@@ -53,6 +53,7 @@ fun AppNavHost(navController: NavHostController = rememberNavController()) {
                 onMenuClick = { scope.launch { drawerState.open() } }
             )
             exerciseHistoryScreen(navController = navController)
+            exercisePickerScreen(navController = navController)
             summaryScreen(
                 navController = navController,
                 onMenuClick = { scope.launch { drawerState.open() } }

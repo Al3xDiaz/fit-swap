@@ -23,11 +23,10 @@ import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.example.fitswap.domain.model.Exercise
 import com.example.fitswap.ui.common.AppTopBar
-import com.example.fitswap.ui.common.MenuNavigationIcon
 
 @Composable
 fun ExerciseCatalogScreen(
-    onMenuClick: () -> Unit,
+    navigationIcon: @Composable () -> Unit,
     onExerciseClick: (exerciseId: String) -> Unit,
     viewModel: ExerciseCatalogViewModel = hiltViewModel(),
 ) {
@@ -36,7 +35,7 @@ fun ExerciseCatalogScreen(
 
     Scaffold(
         topBar = {
-            AppTopBar(title = "Ejercicios", navigationIcon = { MenuNavigationIcon(onMenuClick = onMenuClick) })
+            AppTopBar(title = "Ejercicios", navigationIcon = navigationIcon)
         }
     ) { innerPadding ->
         Column(
