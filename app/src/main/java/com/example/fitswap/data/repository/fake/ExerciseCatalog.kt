@@ -39,7 +39,12 @@ object ExerciseCatalog {
     val tricepsEnCuerda = Exercise("triceps-en-cuerda", "Tríceps en cuerda", "Tríceps", "Cable")
     val pechoPressAperturas = Exercise("pecho-press-aperturas", "Pecho: press / aperturas", "Pecho", "Máquina/Mancuerna")
 
+    // Ejercicio base de calentamiento/cardio (docs/PRD.md, primera alternativa del catálogo en el
+    // boceto de docs/DIAGRAMS.md) — no aparece en ningún día de la rutina por defecto.
+    val caminarEnCinta = Exercise("caminar-en-cinta", "Caminar en cinta", "Cardio", "Cinta", tags = listOf("calentamiento"))
+
     val allExercises: List<Exercise> = listOf(
+        caminarEnCinta,
         elevacionesLaterales, pressMilitarMaquina, pressDePecho, aperturasDePecho, fondosParaTriceps,
         extensionTricepsCuerda, extensionTricepsOverhead, jalonAlPechoDominadas, remoConBarraOMancuerna,
         remoChestSupported, facePulls, curlBicepsBarra, curlMartillo, wristCurls, sentadillaHackSquatPrensa,

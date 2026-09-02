@@ -8,8 +8,10 @@ import com.example.fitswap.data.repository.RoutineRepository
 import com.example.fitswap.data.repository.SetRepository
 import com.example.fitswap.data.repository.SubstituteRepository
 import com.example.fitswap.data.repository.WorkoutSessionRepository
+import com.example.fitswap.data.time.CurrentDateProvider
 import com.example.fitswap.domain.logic.SetPlanner
 import com.example.fitswap.domain.model.Exercise
+import com.example.fitswap.domain.model.HistoryPoint
 import com.example.fitswap.domain.model.LoggedSet
 import com.example.fitswap.domain.model.PlannedSet
 import com.example.fitswap.domain.model.RoutineExercise
@@ -54,6 +56,7 @@ class ActiveExerciseViewModel @Inject constructor(
     private val historyRepository: HistoryRepository,
     private val substituteRepository: SubstituteRepository,
     private val workoutSessionRepository: WorkoutSessionRepository,
+    private val currentDateProvider: CurrentDateProvider,
 ) : ViewModel() {
 
     private val routineId: String = checkNotNull(savedStateHandle["routineId"])
@@ -131,15 +134,27 @@ class ActiveExerciseViewModel @Inject constructor(
         val exercise = routineExercise ?: return
         val current = plan.getOrNull(planIndex) ?: return
         val state = _uiState.value
+        val displayExercise = substitutedExercise ?: exercise.exercise
+        val seq = loggedSetSeq++
 
         val loggedSet = LoggedSet(
-            id = "${exercise.id}-${loggedSetSeq++}",
+            id = "${exercise.id}-$seq",
             routineExerciseId = exercise.id,
             type = current.type,
             reps = state.currentReps,
             weightKg = state.currentStageWeightKg,
         )
         viewModelScope.launch { setRepository.logSet(loggedSet) }
+
+        val historyPoint = HistoryPoint(
+            id = "${displayExercise.id}-$seq",
+            exerciseId = displayExercise.id,
+            date = currentDateProvider.today(),
+            type = current.type,
+            reps = state.currentReps,
+            weightKg = state.currentStageWeightKg,
+        )
+        viewModelScope.launch { historyRepository.addHistoryPoint(historyPoint) }
 
         planIndex++
         manualStageWeightOverrideKg = null

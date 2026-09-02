@@ -10,7 +10,9 @@ import com.example.fitswap.data.repository.fake.FakeRoutineRepository
 import com.example.fitswap.data.repository.fake.FakeSetRepository
 import com.example.fitswap.data.repository.fake.FakeSubstituteRepository
 import com.example.fitswap.data.repository.fake.FakeWorkoutSessionRepository
+import com.example.fitswap.data.time.FixedCurrentDateProvider
 import com.example.fitswap.domain.model.SetType
+import java.time.DayOfWeek
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
@@ -56,6 +58,7 @@ class ActiveExerciseViewModelTest {
         historyRepository = historyRepository,
         substituteRepository = FakeSubstituteRepository(),
         workoutSessionRepository = workoutSessionRepository,
+        currentDateProvider = FixedCurrentDateProvider(DayOfWeek.TUESDAY),
     )
 
     @Test
@@ -182,5 +185,18 @@ class ActiveExerciseViewModelTest {
 
         // Sin historial propio para "prensa-sentadilla-ligera", cae al de su sustituto "sentadilla-hack-prensa".
         assertEquals(80.0, state.effectiveWeightKg, 0.0)
+    }
+
+    @Test
+    fun `registrar una serie agrega un punto de historial para el ejercicio`() = runTest {
+        val historyRepository = FakeHistoryRepository()
+        val viewModel = viewModel(ELEVACIONES_ID, historyRepository = historyRepository)
+        viewModel.uiState.first { !it.isLoading }
+
+        viewModel.registerSet() // calentamiento
+
+        val history = historyRepository.observeHistory(ExerciseCatalog.elevacionesLaterales.id).first()
+        assertEquals(1, history.size)
+        assertEquals(SetType.WARMUP, history.single().type)
     }
 }

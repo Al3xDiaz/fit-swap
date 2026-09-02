@@ -48,10 +48,15 @@ fun AppNavHost(navController: NavHostController = rememberNavController()) {
             swapExerciseScreen(navController = navController)
             notesScreen(navController = navController)
             sessionMenuScreen(navController = navController)
+            exerciseCatalogScreen(
+                navController = navController,
+                onMenuClick = { scope.launch { drawerState.open() } }
+            )
+            exerciseHistoryScreen(navController = navController)
             genericStubScreen(navController = navController)
 
             topLevelDestinations
-                .filter { it != Destination.Routines }
+                .filter { it != Destination.Routines && it != Destination.Exercises }
                 .forEach { destination ->
                     composable(destination.route) {
                         ComingSoonScreen(
