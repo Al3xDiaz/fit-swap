@@ -58,10 +58,15 @@ fun AppNavHost(navController: NavHostController = rememberNavController()) {
                 navController = navController,
                 onMenuClick = { scope.launch { drawerState.open() } }
             )
+            toolsScreen(onMenuClick = { scope.launch { drawerState.open() } })
+            settingsScreen(onMenuClick = { scope.launch { drawerState.open() } })
             genericStubScreen(navController = navController)
 
             topLevelDestinations
-                .filter { it != Destination.Routines && it != Destination.Exercises && it != Destination.Summary }
+                .filter {
+                    it != Destination.Routines && it != Destination.Exercises &&
+                        it != Destination.Summary && it != Destination.Tools && it != Destination.Settings
+                }
                 .forEach { destination ->
                     composable(destination.route) {
                         ComingSoonScreen(

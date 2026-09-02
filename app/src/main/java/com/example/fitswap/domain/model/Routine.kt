@@ -1,7 +1,9 @@
 package com.example.fitswap.domain.model
 
 import java.time.DayOfWeek
+import kotlinx.serialization.Serializable
 
+@Serializable
 data class RoutineExercise(
     val id: String,
     val exercise: Exercise,
@@ -14,14 +16,17 @@ data class RoutineExercise(
     val notes: String? = null,
 )
 
+@Serializable
 data class RoutineDay(
     val id: String,
     val name: String,
     val exercises: List<RoutineExercise>,
     /** Nulo para días de rutinas de un solo día no atadas a un día de semana en particular. */
+    @Serializable(with = DayOfWeekSerializer::class)
     val dayOfWeek: DayOfWeek? = null,
 )
 
+@Serializable
 data class Routine(
     val id: String,
     val name: String,

@@ -13,4 +13,7 @@ interface HistoryRepository {
     fun observeAllHistory(): Flow<List<HistoryPoint>>
 
     suspend fun addHistoryPoint(point: HistoryPoint)
+
+    /** Usado por Herramientas (M9) al importar un backup: reemplaza todo el historial. */
+    suspend fun replaceAllHistory(points: List<HistoryPoint>)
 }

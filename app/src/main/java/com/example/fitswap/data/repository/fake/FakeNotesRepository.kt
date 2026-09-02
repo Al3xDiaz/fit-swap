@@ -18,11 +18,18 @@ class FakeNotesRepository @Inject constructor() : NotesRepository {
     override fun observeNotes(exerciseId: String): Flow<List<Note>> =
         notesByExercise.map { it[exerciseId].orEmpty() }
 
+    override fun observeAllNotes(): Flow<List<Note>> =
+        notesByExercise.map { it.values.flatten() }
+
     override suspend fun addNote(exerciseId: String, text: String) {
         val note = Note(id = "note-${noteSeq++}", exerciseId = exerciseId, text = text)
         notesByExercise.update { current ->
             val existing = current[exerciseId].orEmpty()
             current + (exerciseId to (existing + note))
         }
+    }
+
+    override suspend fun replaceAllNotes(notes: List<Note>) {
+        notesByExercise.value = notes.groupBy { it.exerciseId }
     }
 }

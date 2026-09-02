@@ -89,6 +89,10 @@ class FakeRoutineRepository @Inject constructor() : RoutineRepository {
         }
     }
 
+    override suspend fun replaceRoutines(routines: List<Routine>) {
+        this.routines.value = routines
+    }
+
     private fun uniqueRoutineExerciseId(day: RoutineDay, exerciseId: String): String {
         val base = "${day.id}-$exerciseId"
         if (day.exercises.none { it.id == base }) return base

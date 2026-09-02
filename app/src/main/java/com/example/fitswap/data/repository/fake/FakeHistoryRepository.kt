@@ -34,6 +34,10 @@ class FakeHistoryRepository @Inject constructor() : HistoryRepository {
             current + (point.exerciseId to (existing + point))
         }
     }
+
+    override suspend fun replaceAllHistory(points: List<HistoryPoint>) {
+        historyByExercise.value = points.groupBy { it.exerciseId }
+    }
 }
 
 private fun points(

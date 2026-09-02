@@ -21,4 +21,7 @@ interface RoutineRepository {
     suspend fun addExerciseToDay(routineId: String, dayId: String, exerciseId: String)
     suspend fun removeExerciseFromDay(routineId: String, dayId: String, routineExerciseId: String)
     suspend fun moveExercise(routineId: String, dayId: String, routineExerciseId: String, direction: MoveDirection)
+
+    /** Usado por Herramientas (M9) al importar un backup: reemplaza todas las rutinas. */
+    suspend fun replaceRoutines(routines: List<Routine>)
 }
