@@ -9,6 +9,7 @@ import androidx.navigation.navArgument
 import com.example.fitswap.ui.common.BackNavigationIcon
 import com.example.fitswap.ui.common.ComingSoonScreen
 import com.example.fitswap.ui.screens.activeworkout.ActiveExerciseScreen
+import com.example.fitswap.ui.screens.activeworkout.SwapExerciseScreen
 import com.example.fitswap.ui.screens.routines.RoutineDetailScreen
 import com.example.fitswap.ui.screens.routines.RoutineListScreen
 
@@ -22,6 +23,8 @@ private fun routineDetailRoute(routineId: String) = "routineDetail/$routineId"
 private fun editRoutineRoute(routineId: String) = "editRoutine/$routineId"
 private fun activeExerciseRoute(routineId: String, dayId: String, exerciseId: String) =
     "activeExercise/$routineId/$dayId/$exerciseId"
+private fun swapExerciseRoute(routineId: String, dayId: String, exerciseId: String) =
+    "swapExercise/$routineId/$dayId/$exerciseId"
 private fun stubRoute(title: String) = "stub/${Uri.encode(title)}"
 
 fun NavGraphBuilder.routineListScreen(navController: NavHostController, onMenuClick: () -> Unit) {
@@ -70,14 +73,30 @@ fun NavGraphBuilder.activeExerciseScreen(navController: NavHostController) {
             navArgument(DAY_ID_ARG) { type = NavType.StringType },
             navArgument(EXERCISE_ID_ARG) { type = NavType.StringType },
         )
-    ) {
+    ) { backStackEntry ->
+        val routineId = backStackEntry.arguments?.getString(ROUTINE_ID_ARG).orEmpty()
+        val dayId = backStackEntry.arguments?.getString(DAY_ID_ARG).orEmpty()
+        val exerciseId = backStackEntry.arguments?.getString(EXERCISE_ID_ARG).orEmpty()
         ActiveExerciseScreen(
             onBack = { navController.popBackStack() },
-            onSwapExercise = { navController.navigate(stubRoute("Cambiar ejercicio")) },
+            onSwapExercise = { navController.navigate(swapExerciseRoute(routineId, dayId, exerciseId)) },
             onOpenNotes = { navController.navigate(stubRoute("Notas del ejercicio")) },
             onOpenSessionMenu = { navController.navigate(stubRoute("Menú de sesión")) },
             onAddMedia = { navController.navigate(stubRoute("Galería")) },
         )
+    }
+}
+
+fun NavGraphBuilder.swapExerciseScreen(navController: NavHostController) {
+    composable(
+        route = "swapExercise/{$ROUTINE_ID_ARG}/{$DAY_ID_ARG}/{$EXERCISE_ID_ARG}",
+        arguments = listOf(
+            navArgument(ROUTINE_ID_ARG) { type = NavType.StringType },
+            navArgument(DAY_ID_ARG) { type = NavType.StringType },
+            navArgument(EXERCISE_ID_ARG) { type = NavType.StringType },
+        )
+    ) {
+        SwapExerciseScreen(onClose = { navController.popBackStack() })
     }
 }
 

@@ -6,6 +6,8 @@ import androidx.lifecycle.viewModelScope
 import com.example.fitswap.data.repository.HistoryRepository
 import com.example.fitswap.data.repository.RoutineRepository
 import com.example.fitswap.data.repository.SetRepository
+import com.example.fitswap.data.repository.SubstituteRepository
+import com.example.fitswap.data.repository.WorkoutSessionRepository
 import com.example.fitswap.domain.logic.SetPlanner
 import com.example.fitswap.domain.model.Exercise
 import com.example.fitswap.domain.model.LoggedSet
@@ -50,6 +52,8 @@ class ActiveExerciseViewModel @Inject constructor(
     private val routineRepository: RoutineRepository,
     private val setRepository: SetRepository,
     private val historyRepository: HistoryRepository,
+    private val substituteRepository: SubstituteRepository,
+    private val workoutSessionRepository: WorkoutSessionRepository,
 ) : ViewModel() {
 
     private val routineId: String = checkNotNull(savedStateHandle["routineId"])
@@ -65,6 +69,7 @@ class ActiveExerciseViewModel @Inject constructor(
     private var loggedSetSeq = 0
     private var effectiveWeightKg = 1.0
     private var manualStageWeightOverrideKg: Double? = null
+    private var substitutedExercise: Exercise? = null
     private var restJob: Job? = null
 
     init {
@@ -76,16 +81,28 @@ class ActiveExerciseViewModel @Inject constructor(
             routineExercise = exercise
             plan = SetPlanner.buildPlan(exercise)
 
-            val lastWeight = historyRepository.lastWeightKg(exercise.exercise.id)
-            effectiveWeightKg = SetPlanner.suggestedEffectiveWeight(lastWeight)
-
             val existingLogged = setRepository.observeLoggedSets(exercise.id).first()
             planIndex = existingLogged.size.coerceAtMost(plan.size)
             loggedSetSeq = existingLogged.size
 
-            _uiState.update { it.copy(lastLoggedWeightKg = lastWeight) }
-            refreshUiState()
+            workoutSessionRepository.observeSubstitution(exercise.id).collect { substitution ->
+                substitutedExercise = substitution
+                val activeExercise = substitution ?: exercise.exercise
+                val lastWeight = resolveSuggestedWeight(activeExercise)
+                effectiveWeightKg = SetPlanner.suggestedEffectiveWeight(lastWeight)
+                manualStageWeightOverrideKg = null
+                _uiState.update { it.copy(lastLoggedWeightKg = lastWeight) }
+                refreshUiState()
+            }
         }
+    }
+
+    /** Peso efectivo sugerido: el último registrado para el ejercicio, o para alguno de sus
+     * sustitutos si no hay historial propio (ver `docs/DESIGN_DOC.md#modelo-de-datos-borrador`). */
+    private suspend fun resolveSuggestedWeight(exercise: Exercise): Double? {
+        historyRepository.lastWeightKg(exercise.id)?.let { return it }
+        val substitutes = substituteRepository.substitutesFor(exercise.id)
+        return substitutes.firstNotNullOfOrNull { historyRepository.lastWeightKg(it.id) }
     }
 
     fun updateEffectiveWeight(newWeightKg: Double) {
@@ -146,6 +163,7 @@ class ActiveExerciseViewModel @Inject constructor(
 
     private fun refreshUiState() {
         val exercise = routineExercise ?: return
+        val displayExercise = substitutedExercise ?: exercise.exercise
         val current = plan.getOrNull(planIndex)
         val stageWeightKg = when {
             current == null -> effectiveWeightKg
@@ -158,7 +176,7 @@ class ActiveExerciseViewModel @Inject constructor(
         _uiState.update { state ->
             state.copy(
                 isLoading = false,
-                exercise = exercise.exercise,
+                exercise = displayExercise,
                 phases = buildPhaseStatuses(current?.type),
                 effectiveWeightKg = effectiveWeightKg,
                 currentSet = current,

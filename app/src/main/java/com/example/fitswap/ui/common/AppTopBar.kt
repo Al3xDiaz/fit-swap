@@ -2,6 +2,7 @@ package com.example.fitswap.ui.common
 
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Menu
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
@@ -37,5 +38,12 @@ fun MenuNavigationIcon(onMenuClick: () -> Unit) {
 fun BackNavigationIcon(onBack: () -> Unit) {
     IconButton(onClick = onBack) {
         Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Volver")
+    }
+}
+
+@Composable
+fun CloseNavigationIcon(onClose: () -> Unit) {
+    IconButton(onClick = onClose) {
+        Icon(Icons.Default.Close, contentDescription = "Cerrar")
     }
 }
