@@ -46,6 +46,8 @@ fun AppNavHost(navController: NavHostController = rememberNavController()) {
             editRoutineStubScreen(navController = navController)
             activeExerciseScreen(navController = navController)
             swapExerciseScreen(navController = navController)
+            notesScreen(navController = navController)
+            sessionMenuScreen(navController = navController)
             genericStubScreen(navController = navController)
 
             topLevelDestinations

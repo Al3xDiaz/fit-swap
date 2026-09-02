@@ -20,4 +20,8 @@ class FakeWorkoutSessionRepository @Inject constructor() : WorkoutSessionReposit
     override suspend fun substituteExercise(routineExerciseId: String, exercise: Exercise) {
         substitutionsByRoutineExercise.update { it + (routineExerciseId to exercise) }
     }
+
+    override suspend fun clearAll() {
+        substitutionsByRoutineExercise.value = emptyMap()
+    }
 }

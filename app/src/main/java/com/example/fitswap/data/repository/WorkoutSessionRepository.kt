@@ -11,4 +11,7 @@ import kotlinx.coroutines.flow.Flow
 interface WorkoutSessionRepository {
     fun observeSubstitution(routineExerciseId: String): Flow<Exercise?>
     suspend fun substituteExercise(routineExerciseId: String, exercise: Exercise)
+
+    /** Al terminar la rutina: limpia las sustituciones de la sesión (no las series registradas). */
+    suspend fun clearAll()
 }

@@ -1,0 +1,100 @@
+package com.example.fitswap.ui.screens.activeworkout
+
+import androidx.lifecycle.SavedStateHandle
+import com.example.fitswap.MainDispatcherRule
+import com.example.fitswap.data.repository.fake.ExerciseCatalog
+import com.example.fitswap.data.repository.fake.FakeRoutineRepository
+import com.example.fitswap.data.repository.fake.FakeSetRepository
+import com.example.fitswap.data.repository.fake.FakeWorkoutSessionRepository
+import com.example.fitswap.domain.model.LoggedSet
+import com.example.fitswap.domain.model.SetType
+import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.test.runTest
+import org.junit.Assert.assertEquals
+import org.junit.Assert.assertNull
+import org.junit.Rule
+import org.junit.Test
+
+private const val ROUTINE_ID = "default"
+private const val PUSH_DAY_ID = "default-martes"
+
+// Orden del día (Martes — Push): elevaciones, press militar, press de pecho, aperturas, fondos,
+// extensión cuerda, extensión overhead.
+private const val ELEVACIONES_ID = "default-martes-elevaciones-laterales" // approach=0, effective=4
+private const val PRESS_MILITAR_ID = "default-martes-press-militar-maquina" // approach=1, effective=4
+
+class SessionMenuViewModelTest {
+
+    @get:Rule
+    val mainDispatcherRule = MainDispatcherRule()
+
+    private fun viewModel(
+        activeExerciseId: String,
+        setRepository: FakeSetRepository = FakeSetRepository(),
+        workoutSessionRepository: FakeWorkoutSessionRepository = FakeWorkoutSessionRepository(),
+    ) = SessionMenuViewModel(
+        savedStateHandle = SavedStateHandle(
+            mapOf("routineId" to ROUTINE_ID, "dayId" to PUSH_DAY_ID, "exerciseId" to activeExerciseId)
+        ),
+        routineRepository = FakeRoutineRepository(),
+        setRepository = setRepository,
+        workoutSessionRepository = workoutSessionRepository,
+    )
+
+    @Test
+    fun `el ejercicio activo se marca ACTIVE y el resto sin registros PENDING`() = runTest {
+        val viewModel = viewModel(activeExerciseId = ELEVACIONES_ID)
+
+        val state = viewModel.uiState.first { !it.isLoading }
+
+        assertEquals(7, state.items.size)
+        val elevaciones = state.items.first { it.routineExerciseId == ELEVACIONES_ID }
+        val pressMilitar = state.items.first { it.routineExerciseId == PRESS_MILITAR_ID }
+        assertEquals(SessionExerciseStatus.ACTIVE, elevaciones.status)
+        assertEquals(SessionExerciseStatus.PENDING, pressMilitar.status)
+    }
+
+    @Test
+    fun `un ejercicio con todas sus series registradas se marca DONE`() = runTest {
+        val setRepository = FakeSetRepository()
+        // Elevaciones laterales: 1 warmup + 4 effective = 5 series para completarlo.
+        repeat(5) { index ->
+            setRepository.logSet(
+                LoggedSet(id = "log-$index", routineExerciseId = ELEVACIONES_ID, type = SetType.EFFECTIVE, reps = 10, weightKg = 1.0)
+            )
+        }
+
+        val viewModel = viewModel(activeExerciseId = PRESS_MILITAR_ID, setRepository = setRepository)
+
+        val state = viewModel.uiState.first { !it.isLoading }
+
+        val elevaciones = state.items.first { it.routineExerciseId == ELEVACIONES_ID }
+        assertEquals(SessionExerciseStatus.DONE, elevaciones.status)
+    }
+
+    @Test
+    fun `el nombre mostrado usa el sustituto si hubo swap en ese slot`() = runTest {
+        val sessionRepository = FakeWorkoutSessionRepository()
+        sessionRepository.substituteExercise(PRESS_MILITAR_ID, ExerciseCatalog.pressDeHombroEnMaquina)
+
+        val viewModel = viewModel(activeExerciseId = ELEVACIONES_ID, workoutSessionRepository = sessionRepository)
+
+        val state = viewModel.uiState.first { !it.isLoading }
+
+        val pressMilitar = state.items.first { it.routineExerciseId == PRESS_MILITAR_ID }
+        assertEquals("Press de hombro en máquina", pressMilitar.exerciseName)
+    }
+
+    @Test
+    fun `terminar rutina limpia las sustituciones de la sesion`() = runTest {
+        val sessionRepository = FakeWorkoutSessionRepository()
+        sessionRepository.substituteExercise(PRESS_MILITAR_ID, ExerciseCatalog.pressDeHombroEnMaquina)
+        val viewModel = viewModel(activeExerciseId = ELEVACIONES_ID, workoutSessionRepository = sessionRepository)
+        viewModel.uiState.first { !it.isLoading }
+
+        viewModel.endRoutine()
+
+        val substitution = sessionRepository.observeSubstitution(PRESS_MILITAR_ID).first()
+        assertNull(substitution)
+    }
+}

@@ -9,6 +9,8 @@ import androidx.navigation.navArgument
 import com.example.fitswap.ui.common.BackNavigationIcon
 import com.example.fitswap.ui.common.ComingSoonScreen
 import com.example.fitswap.ui.screens.activeworkout.ActiveExerciseScreen
+import com.example.fitswap.ui.screens.activeworkout.NotesScreen
+import com.example.fitswap.ui.screens.activeworkout.SessionMenuScreen
 import com.example.fitswap.ui.screens.activeworkout.SwapExerciseScreen
 import com.example.fitswap.ui.screens.routines.RoutineDetailScreen
 import com.example.fitswap.ui.screens.routines.RoutineListScreen
@@ -19,12 +21,19 @@ private const val EXERCISE_ID_ARG = "exerciseId"
 private const val STUB_TITLE_ARG = "title"
 private const val NEW_ROUTINE_ID = "new"
 
+private const val ACTIVE_EXERCISE_ROUTE_PATTERN =
+    "activeExercise/{$ROUTINE_ID_ARG}/{$DAY_ID_ARG}/{$EXERCISE_ID_ARG}"
+
 private fun routineDetailRoute(routineId: String) = "routineDetail/$routineId"
 private fun editRoutineRoute(routineId: String) = "editRoutine/$routineId"
 private fun activeExerciseRoute(routineId: String, dayId: String, exerciseId: String) =
     "activeExercise/$routineId/$dayId/$exerciseId"
 private fun swapExerciseRoute(routineId: String, dayId: String, exerciseId: String) =
     "swapExercise/$routineId/$dayId/$exerciseId"
+private fun notesRoute(routineId: String, dayId: String, exerciseId: String) =
+    "notes/$routineId/$dayId/$exerciseId"
+private fun sessionMenuRoute(routineId: String, dayId: String, exerciseId: String) =
+    "sessionMenu/$routineId/$dayId/$exerciseId"
 private fun stubRoute(title: String) = "stub/${Uri.encode(title)}"
 
 fun NavGraphBuilder.routineListScreen(navController: NavHostController, onMenuClick: () -> Unit) {
@@ -67,7 +76,7 @@ fun NavGraphBuilder.editRoutineStubScreen(navController: NavHostController) {
 
 fun NavGraphBuilder.activeExerciseScreen(navController: NavHostController) {
     composable(
-        route = "activeExercise/{$ROUTINE_ID_ARG}/{$DAY_ID_ARG}/{$EXERCISE_ID_ARG}",
+        route = ACTIVE_EXERCISE_ROUTE_PATTERN,
         arguments = listOf(
             navArgument(ROUTINE_ID_ARG) { type = NavType.StringType },
             navArgument(DAY_ID_ARG) { type = NavType.StringType },
@@ -80,8 +89,8 @@ fun NavGraphBuilder.activeExerciseScreen(navController: NavHostController) {
         ActiveExerciseScreen(
             onBack = { navController.popBackStack() },
             onSwapExercise = { navController.navigate(swapExerciseRoute(routineId, dayId, exerciseId)) },
-            onOpenNotes = { navController.navigate(stubRoute("Notas del ejercicio")) },
-            onOpenSessionMenu = { navController.navigate(stubRoute("Menú de sesión")) },
+            onOpenNotes = { navController.navigate(notesRoute(routineId, dayId, exerciseId)) },
+            onOpenSessionMenu = { navController.navigate(sessionMenuRoute(routineId, dayId, exerciseId)) },
             onAddMedia = { navController.navigate(stubRoute("Galería")) },
         )
     }
@@ -97,6 +106,47 @@ fun NavGraphBuilder.swapExerciseScreen(navController: NavHostController) {
         )
     ) {
         SwapExerciseScreen(onClose = { navController.popBackStack() })
+    }
+}
+
+fun NavGraphBuilder.notesScreen(navController: NavHostController) {
+    composable(
+        route = "notes/{$ROUTINE_ID_ARG}/{$DAY_ID_ARG}/{$EXERCISE_ID_ARG}",
+        arguments = listOf(
+            navArgument(ROUTINE_ID_ARG) { type = NavType.StringType },
+            navArgument(DAY_ID_ARG) { type = NavType.StringType },
+            navArgument(EXERCISE_ID_ARG) { type = NavType.StringType },
+        )
+    ) {
+        NotesScreen(onClose = { navController.popBackStack() })
+    }
+}
+
+fun NavGraphBuilder.sessionMenuScreen(navController: NavHostController) {
+    composable(
+        route = "sessionMenu/{$ROUTINE_ID_ARG}/{$DAY_ID_ARG}/{$EXERCISE_ID_ARG}",
+        arguments = listOf(
+            navArgument(ROUTINE_ID_ARG) { type = NavType.StringType },
+            navArgument(DAY_ID_ARG) { type = NavType.StringType },
+            navArgument(EXERCISE_ID_ARG) { type = NavType.StringType },
+        )
+    ) { backStackEntry ->
+        val routineId = backStackEntry.arguments?.getString(ROUTINE_ID_ARG).orEmpty()
+        val dayId = backStackEntry.arguments?.getString(DAY_ID_ARG).orEmpty()
+        SessionMenuScreen(
+            onClose = { navController.popBackStack() },
+            onSelectExercise = { newExerciseId ->
+                navController.navigate(activeExerciseRoute(routineId, dayId, newExerciseId)) {
+                    popUpTo(ACTIVE_EXERCISE_ROUTE_PATTERN) { inclusive = true }
+                }
+            },
+            onFinishRoutine = {
+                navController.navigate(Destination.Routines.route) {
+                    popUpTo(Destination.Routines.route) { inclusive = true }
+                    launchSingleTop = true
+                }
+            },
+        )
     }
 }
 
