@@ -1,5 +1,7 @@
 package com.example.fitswap.domain.model
 
+import java.time.DayOfWeek
+
 data class RoutineExercise(
     val id: String,
     val exercise: Exercise,
@@ -16,6 +18,8 @@ data class RoutineDay(
     val id: String,
     val name: String,
     val exercises: List<RoutineExercise>,
+    /** Nulo para días de rutinas de un solo día no atadas a un día de semana en particular. */
+    val dayOfWeek: DayOfWeek? = null,
 )
 
 data class Routine(

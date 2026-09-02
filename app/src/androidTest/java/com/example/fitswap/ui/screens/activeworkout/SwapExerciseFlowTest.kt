@@ -4,7 +4,6 @@ import androidx.compose.ui.test.assertTextEquals
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.performClick
-import androidx.compose.ui.test.performScrollTo
 import com.example.fitswap.MainActivity
 import dagger.hilt.android.testing.HiltAndroidRule
 import dagger.hilt.android.testing.HiltAndroidTest
@@ -29,7 +28,11 @@ class SwapExerciseFlowTest {
     @Test
     fun elegirUnSustitutoReemplazaElEjercicioEnCursoSinSalirDeLaPantalla() {
         composeTestRule.onNodeWithTag("routineListItem_default").performClick()
-        composeTestRule.onNodeWithTag("startWorkoutButton_default-jueves").performScrollTo().performClick()
+        // Por defecto se abre el día de hoy (fijado a martes/Push en los tests, ver TestDateModule) —
+        // cambiamos a Jueves/Legs con el selector de día.
+        composeTestRule.onNodeWithTag("changeDayButton").performClick()
+        composeTestRule.onNodeWithTag("dayPickerItem_default-jueves").performClick()
+        composeTestRule.onNodeWithTag("startWorkoutButton_default-jueves").performClick()
 
         composeTestRule.onNodeWithTag("appTopBarTitle").assertTextEquals("Sentadilla / hack squat / prensa")
 

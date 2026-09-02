@@ -4,6 +4,7 @@ import com.example.fitswap.domain.model.Exercise
 import com.example.fitswap.domain.model.Routine
 import com.example.fitswap.domain.model.RoutineDay
 import com.example.fitswap.domain.model.RoutineExercise
+import java.time.DayOfWeek
 
 private fun routineExercise(
     dayId: String,
@@ -32,6 +33,7 @@ private fun pushDay(routineId: String): RoutineDay {
     return RoutineDay(
         id = dayId,
         name = "Martes — Push",
+        dayOfWeek = DayOfWeek.TUESDAY,
         exercises = listOf(
             routineExercise(dayId, ExerciseCatalog.elevacionesLaterales, approachSets = 0, effectiveSets = 4, effectiveRepsLabel = "12–15", restLabel = "60–75 s", notes = "Deltoide lateral primero para priorizarlo. Brazo ligeramente hacia delante."),
             routineExercise(dayId, ExerciseCatalog.pressMilitarMaquina, approachSets = 1, effectiveSets = 4, effectiveRepsLabel = "8–12", approachGuideline = "60% × 6–8", restLabel = "2–3 min", notes = "Ajustar asiento para que los agarres queden aproximadamente a nivel de la barbilla; codos ~45°."),
@@ -49,6 +51,7 @@ private fun pullDay(routineId: String): RoutineDay {
     return RoutineDay(
         id = dayId,
         name = "Miércoles — Pull",
+        dayOfWeek = DayOfWeek.WEDNESDAY,
         exercises = listOf(
             routineExercise(dayId, ExerciseCatalog.jalonAlPechoDominadas, approachSets = 1, effectiveSets = 4, effectiveRepsLabel = "8–12", approachGuideline = "60–65% × 6–8", restLabel = "2–3 min", usesStraps = true, notes = "Usar straps si el agarre limita el trabajo de espalda."),
             routineExercise(dayId, ExerciseCatalog.remoConBarraOMancuerna, approachSets = 1, effectiveSets = 4, effectiveRepsLabel = "8–12", approachGuideline = "60–70% × 5–6", restLabel = "2–3 min", usesStraps = true, notes = "Sin impulso. Straps especialmente útiles en series pesadas."),
@@ -66,6 +69,7 @@ private fun legsDay(routineId: String): RoutineDay {
     return RoutineDay(
         id = dayId,
         name = "Jueves — Legs",
+        dayOfWeek = DayOfWeek.THURSDAY,
         exercises = listOf(
             routineExercise(dayId, ExerciseCatalog.sentadillaHackSquatPrensa, approachSets = 2, effectiveSets = 4, effectiveRepsLabel = "8–12", approachGuideline = "50% × 6 → 70% × 4", restLabel = "2–3 min", notes = "Principal del día. Priorizar técnica y rango cómodo."),
             routineExercise(dayId, ExerciseCatalog.hipThrust, approachSets = 1, effectiveSets = 4, effectiveRepsLabel = "8–12", approachGuideline = "60–65% × 6", restLabel = "2–3 min", notes = "Pausa breve arriba y control de la pelvis."),
@@ -82,6 +86,7 @@ private fun fullUpperDay(routineId: String): RoutineDay {
     return RoutineDay(
         id = dayId,
         name = "Sábado — Full Upper",
+        dayOfWeek = DayOfWeek.SATURDAY,
         exercises = listOf(
             routineExercise(dayId, ExerciseCatalog.pressInclinado, approachSets = 1, effectiveSets = 3, effectiveRepsLabel = "8–12", approachGuideline = "60–65% × 6", restLabel = "2 min", notes = "Controlar el movimiento."),
             routineExercise(dayId, ExerciseCatalog.remoEnMaquinaOMancuerna, approachSets = 0, effectiveSets = 3, effectiveRepsLabel = "10–12", restLabel = "2 min", usesStraps = true, notes = "Straps opcionales según agarre."),
@@ -98,6 +103,7 @@ private fun armsLegsChestDay(routineId: String): RoutineDay {
     return RoutineDay(
         id = dayId,
         name = "Domingo — Brazos + Pierna + Pecho",
+        dayOfWeek = DayOfWeek.SUNDAY,
         exercises = listOf(
             routineExercise(dayId, ExerciseCatalog.prensaSentadillaLigera, approachSets = 0, effectiveSets = 3, effectiveRepsLabel = "10–12", restLabel = "2 min", notes = "Trabajo de pierna secundario."),
             routineExercise(dayId, ExerciseCatalog.curlFemoralExtensionCuadriceps, approachSets = 0, effectiveSets = 2, effectiveRepsLabel = "12–15", restLabel = "75 s", notes = "Elegir según lo que quieras priorizar."),
