@@ -44,7 +44,8 @@ fun AppNavHost(navController: NavHostController = rememberNavController()) {
             )
             routineDetailScreen(navController = navController)
             editRoutineStubScreen(navController = navController)
-            activeExerciseStubScreen(navController = navController)
+            activeExerciseScreen(navController = navController)
+            genericStubScreen(navController = navController)
 
             topLevelDestinations
                 .filter { it != Destination.Routines }

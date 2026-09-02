@@ -39,7 +39,7 @@ import com.example.fitswap.ui.common.ConfirmDialog
 @Composable
 fun RoutineDetailScreen(
     onBack: () -> Unit,
-    onStartWorkout: () -> Unit,
+    onStartWorkout: (dayId: String, exerciseId: String) -> Unit,
     onEditRoutine: () -> Unit,
     viewModel: RoutineDetailViewModel = hiltViewModel(),
 ) {
@@ -75,17 +75,7 @@ fun RoutineDetailScreen(
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
             items(currentRoutine.days, key = { it.id }) { day ->
-                RoutineDaySection(day = day, onEditRoutine = onEditRoutine)
-            }
-            item {
-                Button(
-                    onClick = onStartWorkout,
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .testTag("startWorkoutButton")
-                ) {
-                    Text("Empezar entrenamiento")
-                }
+                RoutineDaySection(day = day, onEditRoutine = onEditRoutine, onStartWorkout = onStartWorkout)
             }
             if (!currentRoutine.isDefault) {
                 item {
@@ -117,7 +107,11 @@ fun RoutineDetailScreen(
 }
 
 @Composable
-private fun RoutineDaySection(day: RoutineDay, onEditRoutine: () -> Unit) {
+private fun RoutineDaySection(
+    day: RoutineDay,
+    onEditRoutine: () -> Unit,
+    onStartWorkout: (dayId: String, exerciseId: String) -> Unit,
+) {
     Column {
         Row(
             modifier = Modifier.fillMaxWidth(),
@@ -135,6 +129,17 @@ private fun RoutineDaySection(day: RoutineDay, onEditRoutine: () -> Unit) {
                 style = MaterialTheme.typography.bodyLarge,
                 modifier = Modifier.padding(vertical = 4.dp)
             )
+        }
+        if (day.exercises.isNotEmpty()) {
+            Button(
+                onClick = { onStartWorkout(day.id, day.exercises.first().id) },
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(top = 8.dp)
+                    .testTag("startWorkoutButton_${day.id}")
+            ) {
+                Text("Empezar entrenamiento")
+            }
         }
     }
 }

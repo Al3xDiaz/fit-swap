@@ -1,5 +1,6 @@
 package com.example.fitswap.navigation
 
+import android.net.Uri
 import androidx.navigation.NavGraphBuilder
 import androidx.navigation.NavHostController
 import androidx.navigation.NavType
@@ -7,14 +8,21 @@ import androidx.navigation.compose.composable
 import androidx.navigation.navArgument
 import com.example.fitswap.ui.common.BackNavigationIcon
 import com.example.fitswap.ui.common.ComingSoonScreen
+import com.example.fitswap.ui.screens.activeworkout.ActiveExerciseScreen
 import com.example.fitswap.ui.screens.routines.RoutineDetailScreen
 import com.example.fitswap.ui.screens.routines.RoutineListScreen
 
 private const val ROUTINE_ID_ARG = "routineId"
+private const val DAY_ID_ARG = "dayId"
+private const val EXERCISE_ID_ARG = "exerciseId"
+private const val STUB_TITLE_ARG = "title"
 private const val NEW_ROUTINE_ID = "new"
 
 private fun routineDetailRoute(routineId: String) = "routineDetail/$routineId"
 private fun editRoutineRoute(routineId: String) = "editRoutine/$routineId"
+private fun activeExerciseRoute(routineId: String, dayId: String, exerciseId: String) =
+    "activeExercise/$routineId/$dayId/$exerciseId"
+private fun stubRoute(title: String) = "stub/${Uri.encode(title)}"
 
 fun NavGraphBuilder.routineListScreen(navController: NavHostController, onMenuClick: () -> Unit) {
     composable(Destination.Routines.route) {
@@ -34,7 +42,9 @@ fun NavGraphBuilder.routineDetailScreen(navController: NavHostController) {
         val routineId = backStackEntry.arguments?.getString(ROUTINE_ID_ARG).orEmpty()
         RoutineDetailScreen(
             onBack = { navController.popBackStack() },
-            onStartWorkout = { navController.navigate("activeExercise") },
+            onStartWorkout = { dayId, exerciseId ->
+                navController.navigate(activeExerciseRoute(routineId, dayId, exerciseId))
+            },
             onEditRoutine = { navController.navigate(editRoutineRoute(routineId)) },
         )
     }
@@ -52,10 +62,33 @@ fun NavGraphBuilder.editRoutineStubScreen(navController: NavHostController) {
     }
 }
 
-fun NavGraphBuilder.activeExerciseStubScreen(navController: NavHostController) {
-    composable("activeExercise") {
+fun NavGraphBuilder.activeExerciseScreen(navController: NavHostController) {
+    composable(
+        route = "activeExercise/{$ROUTINE_ID_ARG}/{$DAY_ID_ARG}/{$EXERCISE_ID_ARG}",
+        arguments = listOf(
+            navArgument(ROUTINE_ID_ARG) { type = NavType.StringType },
+            navArgument(DAY_ID_ARG) { type = NavType.StringType },
+            navArgument(EXERCISE_ID_ARG) { type = NavType.StringType },
+        )
+    ) {
+        ActiveExerciseScreen(
+            onBack = { navController.popBackStack() },
+            onSwapExercise = { navController.navigate(stubRoute("Cambiar ejercicio")) },
+            onOpenNotes = { navController.navigate(stubRoute("Notas del ejercicio")) },
+            onOpenSessionMenu = { navController.navigate(stubRoute("Menú de sesión")) },
+            onAddMedia = { navController.navigate(stubRoute("Galería")) },
+        )
+    }
+}
+
+fun NavGraphBuilder.genericStubScreen(navController: NavHostController) {
+    composable(
+        route = "stub/{$STUB_TITLE_ARG}",
+        arguments = listOf(navArgument(STUB_TITLE_ARG) { type = NavType.StringType })
+    ) { backStackEntry ->
+        val title = backStackEntry.arguments?.getString(STUB_TITLE_ARG).orEmpty()
         ComingSoonScreen(
-            title = "Ejercicio activo",
+            title = title,
             navigationIcon = { BackNavigationIcon(onBack = { navController.popBackStack() }) }
         )
     }
