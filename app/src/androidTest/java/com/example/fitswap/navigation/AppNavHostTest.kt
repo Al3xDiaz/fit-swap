@@ -35,7 +35,12 @@ class AppNavHostTest {
             .forEach { destination ->
                 composeTestRule.onNodeWithContentDescription("Abrir menú").performClick()
                 composeTestRule.onNodeWithTag("drawerItem_${destination.route}").performClick()
-                composeTestRule.onNodeWithTag("appTopBarTitle").assertTextEquals(destination.label)
+                composeTestRule.onNodeWithTag("appTopBarTitle").assertTextEquals(expectedTopBarTitle(destination))
             }
     }
+
+    // Resumen/Reporte usa "Resumen" como título de pantalla (boceto de docs/DIAGRAMS.md); el resto
+    // de las secciones todavía no implementadas siguen mostrando su label completo vía ComingSoonScreen.
+    private fun expectedTopBarTitle(destination: Destination): String =
+        if (destination == Destination.Summary) "Resumen" else destination.label
 }

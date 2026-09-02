@@ -25,6 +25,9 @@ class FakeHistoryRepository @Inject constructor() : HistoryRepository {
     override fun observeHistory(exerciseId: String): Flow<List<HistoryPoint>> =
         historyByExercise.map { it[exerciseId].orEmpty() }
 
+    override fun observeAllHistory(): Flow<List<HistoryPoint>> =
+        historyByExercise.map { it.values.flatten() }
+
     override suspend fun addHistoryPoint(point: HistoryPoint) {
         historyByExercise.update { current ->
             val existing = current[point.exerciseId].orEmpty()

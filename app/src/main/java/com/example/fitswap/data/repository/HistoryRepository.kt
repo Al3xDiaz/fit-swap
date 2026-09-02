@@ -9,5 +9,8 @@ interface HistoryRepository {
 
     fun observeHistory(exerciseId: String): Flow<List<HistoryPoint>>
 
+    /** Historial de todos los ejercicios combinado — usado por Resumen/Reporte para agregados cruzados. */
+    fun observeAllHistory(): Flow<List<HistoryPoint>>
+
     suspend fun addHistoryPoint(point: HistoryPoint)
 }
