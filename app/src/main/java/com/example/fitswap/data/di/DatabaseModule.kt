@@ -26,7 +26,12 @@ object DatabaseModule {
     @Provides
     @Singleton
     fun provideDatabase(@ApplicationContext context: Context): FitSwapDatabase {
-        val database = Room.databaseBuilder(context, FitSwapDatabase::class.java, DATABASE_NAME).build()
+        val database = Room.databaseBuilder(context, FitSwapDatabase::class.java, DATABASE_NAME)
+            // Todavía no hay usuarios reales ni estrategia de migración — ante un cambio de schema
+            // (como el de M14), recrear la base desde cero es preferible a una migración manual
+            // que nadie necesita todavía.
+            .fallbackToDestructiveMigration(dropAllTables = true)
+            .build()
         // Seed una sola vez, al primer arranque real (count() > 0 en cualquier arranque siguiente
         // hace que esto sea prácticamente instantáneo) — bloquear acá evita que cualquier
         // repositorio llegue a leer una tabla vacía antes de que el seed termine.

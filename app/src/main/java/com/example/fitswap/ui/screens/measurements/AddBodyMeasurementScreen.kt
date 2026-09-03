@@ -27,7 +27,9 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.example.fitswap.domain.model.BiologicalSex
 import com.example.fitswap.ui.common.AppTopBar
 import com.example.fitswap.ui.common.BackNavigationIcon
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 
 @Composable
 fun AddBodyMeasurementScreen(
@@ -121,7 +123,15 @@ fun AddBodyMeasurementScreen(
             )
 
             Button(
-                onClick = { scope.launch { if (viewModel.save()) onClose() } },
+                onClick = {
+                    scope.launch {
+                        val saved = viewModel.save()
+                        // `save()` termina tras varias escrituras a Room — forzar Main explícito
+                        // para el callback de navegación en vez de asumir que la corrutina
+                        // resume ahí (Room puede resumir en su propio executor de background).
+                        if (saved) withContext(Dispatchers.Main) { onClose() }
+                    }
+                },
                 enabled = uiState.canSave,
                 modifier = Modifier
                     .fillMaxWidth()

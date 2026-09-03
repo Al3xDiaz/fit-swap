@@ -1,6 +1,8 @@
 package com.example.fitswap.data.di
 
 import com.example.fitswap.data.local.FitSwapDatabase
+import com.example.fitswap.data.local.dao.BodyMeasurementDao
+import com.example.fitswap.data.local.dao.BodyProfileDao
 import com.example.fitswap.data.local.dao.ExerciseDao
 import com.example.fitswap.data.local.dao.GalleryDao
 import com.example.fitswap.data.local.dao.HistoryDao
@@ -38,4 +40,10 @@ object DaoModule {
 
     @Provides
     fun provideGalleryDao(database: FitSwapDatabase): GalleryDao = database.galleryDao()
+
+    @Provides
+    fun provideBodyMeasurementDao(database: FitSwapDatabase): BodyMeasurementDao = database.bodyMeasurementDao()
+
+    @Provides
+    fun provideBodyProfileDao(database: FitSwapDatabase): BodyProfileDao = database.bodyProfileDao()
 }

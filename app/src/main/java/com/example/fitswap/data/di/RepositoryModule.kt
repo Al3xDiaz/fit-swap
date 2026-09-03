@@ -12,9 +12,9 @@ import com.example.fitswap.data.repository.SettingsRepository
 import com.example.fitswap.data.repository.SubstituteRepository
 import com.example.fitswap.data.repository.WorkoutSessionRepository
 import com.example.fitswap.data.repository.datastore.DataStoreSettingsRepository
-import com.example.fitswap.data.repository.fake.FakeBodyMeasurementRepository
-import com.example.fitswap.data.repository.fake.FakeBodyProfileRepository
 import com.example.fitswap.data.repository.fake.FakeWorkoutSessionRepository
+import com.example.fitswap.data.repository.room.RoomBodyMeasurementRepository
+import com.example.fitswap.data.repository.room.RoomBodyProfileRepository
 import com.example.fitswap.data.repository.room.RoomExerciseRepository
 import com.example.fitswap.data.repository.room.RoomGalleryRepository
 import com.example.fitswap.data.repository.room.RoomHistoryRepository
@@ -28,10 +28,11 @@ import dagger.hilt.InstallIn
 import dagger.hilt.components.SingletonComponent
 
 /**
- * Desde M11, la mayoría de los repositorios corren contra Room ([RoomRoutineRepository] y
- * hermanos); desde M12, [SettingsRepository] corre contra DataStore
- * ([DataStoreSettingsRepository]). [WorkoutSessionRepository] queda en memoria a propósito — es
- * estado de la sesión de entrenamiento en curso, no datos persistentes (ver su propio KDoc).
+ * Desde M11/M14, la mayoría de los repositorios corren contra Room ([RoomRoutineRepository] y
+ * hermanos, incluidos [RoomBodyMeasurementRepository]/[RoomBodyProfileRepository]); desde M12,
+ * [SettingsRepository] corre contra DataStore ([DataStoreSettingsRepository]).
+ * [WorkoutSessionRepository] queda en memoria a propósito — es estado de la sesión de
+ * entrenamiento en curso, no datos persistentes (ver su propio KDoc).
  */
 @Module
 @InstallIn(SingletonComponent::class)
@@ -64,10 +65,9 @@ abstract class RepositoryModule {
     @Binds
     abstract fun bindGalleryRepository(impl: RoomGalleryRepository): GalleryRepository
 
-    /** M13, todavía fake — Room llega en M14, mismo patrón de M2→M11. */
     @Binds
-    abstract fun bindBodyProfileRepository(impl: FakeBodyProfileRepository): BodyProfileRepository
+    abstract fun bindBodyProfileRepository(impl: RoomBodyProfileRepository): BodyProfileRepository
 
     @Binds
-    abstract fun bindBodyMeasurementRepository(impl: FakeBodyMeasurementRepository): BodyMeasurementRepository
+    abstract fun bindBodyMeasurementRepository(impl: RoomBodyMeasurementRepository): BodyMeasurementRepository
 }

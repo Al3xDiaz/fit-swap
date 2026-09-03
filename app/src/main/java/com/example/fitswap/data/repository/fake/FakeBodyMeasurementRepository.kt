@@ -28,7 +28,7 @@ class FakeBodyMeasurementRepository @Inject constructor() : BodyMeasurementRepos
  * datos para calcular % de grasa" por defecto (junto con el perfil vacío de
  * [FakeBodyProfileRepository]).
  */
-private fun seedMeasurements(): List<BodyMeasurementEntry> = listOf(
+internal fun seedMeasurements(): List<BodyMeasurementEntry> = listOf(
     BodyMeasurementEntry(id = "seed-0", date = LocalDate.of(2026, 8, 1), weightKg = 78.0),
     BodyMeasurementEntry(id = "seed-1", date = LocalDate.of(2026, 8, 15), weightKg = 77.2),
     BodyMeasurementEntry(id = "seed-2", date = LocalDate.of(2026, 8, 29), weightKg = 76.5),
