@@ -60,7 +60,6 @@ fun AppNavHost(navController: NavHostController = rememberNavController()) {
             )
             toolsScreen(onMenuClick = { scope.launch { drawerState.open() } })
             settingsScreen(onMenuClick = { scope.launch { drawerState.open() } })
-            genericStubScreen(navController = navController)
 
             topLevelDestinations
                 .filter {

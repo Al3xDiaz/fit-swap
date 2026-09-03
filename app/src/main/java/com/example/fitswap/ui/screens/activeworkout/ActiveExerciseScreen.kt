@@ -1,12 +1,21 @@
 package com.example.fitswap.ui.screens.activeworkout
 
+import android.net.Uri
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.PickVisualMediaRequest
+import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.lazy.grid.GridCells
+import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
+import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.material3.AssistChip
 import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
@@ -26,10 +35,14 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import coil.compose.AsyncImage
+import com.example.fitswap.domain.model.GalleryItem
 import com.example.fitswap.domain.model.PlannedSet
 import com.example.fitswap.domain.model.SetType
 import com.example.fitswap.ui.common.AppTopBar
@@ -41,7 +54,6 @@ fun ActiveExerciseScreen(
     onSwapExercise: () -> Unit,
     onOpenNotes: () -> Unit,
     onOpenSessionMenu: () -> Unit,
-    onAddMedia: () -> Unit,
     onExerciseAutoAdvance: (nextExerciseId: String) -> Unit,
     viewModel: ActiveExerciseViewModel = hiltViewModel(),
 ) {
@@ -101,7 +113,10 @@ fun ActiveExerciseScreen(
                     onRegisterSet = viewModel::registerSet,
                 )
 
-                else -> GalleryTab(onAddMedia = onAddMedia)
+                else -> GalleryTab(
+                    galleryItems = uiState.galleryItems,
+                    onMediaPicked = { uri, isVideo -> viewModel.addMedia(uri.toString(), isVideo) },
+                )
             }
         }
     }
@@ -244,21 +259,81 @@ private fun TrainingTab(
 }
 
 @Composable
-private fun GalleryTab(onAddMedia: () -> Unit) {
-    Box(
-        modifier = Modifier
-            .fillMaxSize()
-            .padding(24.dp),
-        contentAlignment = Alignment.Center
-    ) {
+private fun GalleryTab(
+    galleryItems: List<GalleryItem>,
+    onMediaPicked: (uri: Uri, isVideo: Boolean) -> Unit,
+) {
+    val context = LocalContext.current
+    val pickMediaLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.PickVisualMedia()
+    ) { uri: Uri? ->
+        if (uri == null) return@rememberLauncherForActivityResult
+        val isVideo = context.contentResolver.getType(uri)?.startsWith("video/") == true
+        onMediaPicked(uri, isVideo)
+    }
+    val launchPicker: () -> Unit = {
+        pickMediaLauncher.launch(PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageAndVideo))
+    }
+
+    if (galleryItems.isEmpty()) {
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(24.dp),
+            contentAlignment = Alignment.Center
+        ) {
+            Column(
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.spacedBy(12.dp)
+            ) {
+                Text("Sin fotos ni videos todavía", style = MaterialTheme.typography.bodyLarge)
+                OutlinedButton(onClick = launchPicker, modifier = Modifier.testTag("addMediaButton")) {
+                    Text("+ Agregar foto/video")
+                }
+            }
+        }
+    } else {
         Column(
-            horizontalAlignment = Alignment.CenterHorizontally,
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(16.dp),
             verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
-            Text("Sin fotos ni videos todavía", style = MaterialTheme.typography.bodyLarge)
-            OutlinedButton(onClick = onAddMedia, modifier = Modifier.testTag("addMediaButton")) {
+            OutlinedButton(onClick = launchPicker, modifier = Modifier.testTag("addMediaButton")) {
                 Text("+ Agregar foto/video")
             }
+            LazyVerticalGrid(
+                columns = GridCells.Adaptive(96.dp),
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                verticalArrangement = Arrangement.spacedBy(8.dp),
+                modifier = Modifier
+                    .fillMaxSize()
+                    .testTag("galleryGrid"),
+            ) {
+                items(galleryItems, key = { it.id }) { item -> GalleryTile(item) }
+            }
+        }
+    }
+}
+
+@Composable
+private fun GalleryTile(item: GalleryItem) {
+    Box(
+        modifier = Modifier
+            .aspectRatio(1f)
+            .testTag("galleryItem_${item.id}")
+            .background(MaterialTheme.colorScheme.surfaceVariant),
+        contentAlignment = Alignment.Center,
+    ) {
+        if (item.isVideo) {
+            Text("▶ Video", style = MaterialTheme.typography.labelMedium)
+        } else {
+            AsyncImage(
+                model = item.uri,
+                contentDescription = null,
+                contentScale = ContentScale.Crop,
+                modifier = Modifier.fillMaxSize(),
+            )
         }
     }
 }

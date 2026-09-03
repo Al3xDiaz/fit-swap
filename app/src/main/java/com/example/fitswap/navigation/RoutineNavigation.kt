@@ -1,6 +1,5 @@
 package com.example.fitswap.navigation
 
-import android.net.Uri
 import androidx.navigation.NavGraphBuilder
 import androidx.navigation.NavHostController
 import androidx.navigation.NavType
@@ -8,8 +7,6 @@ import androidx.navigation.compose.composable
 import androidx.navigation.navArgument
 import androidx.compose.runtime.getValue
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import com.example.fitswap.ui.common.BackNavigationIcon
-import com.example.fitswap.ui.common.ComingSoonScreen
 import com.example.fitswap.ui.screens.activeworkout.ActiveExerciseScreen
 import com.example.fitswap.ui.screens.activeworkout.NotesScreen
 import com.example.fitswap.ui.screens.activeworkout.SessionMenuScreen
@@ -21,7 +18,6 @@ import com.example.fitswap.ui.screens.routines.RoutineListScreen
 private const val ROUTINE_ID_ARG = "routineId"
 private const val DAY_ID_ARG = "dayId"
 private const val EXERCISE_ID_ARG = "exerciseId"
-private const val STUB_TITLE_ARG = "title"
 private const val NEW_ROUTINE_ID = "new"
 
 private const val ACTIVE_EXERCISE_ROUTE_PATTERN =
@@ -37,7 +33,6 @@ private fun notesRoute(routineId: String, dayId: String, exerciseId: String) =
     "notes/$routineId/$dayId/$exerciseId"
 private fun sessionMenuRoute(routineId: String, dayId: String, exerciseId: String) =
     "sessionMenu/$routineId/$dayId/$exerciseId"
-private fun stubRoute(title: String) = "stub/${Uri.encode(title)}"
 
 fun NavGraphBuilder.routineListScreen(navController: NavHostController, onMenuClick: () -> Unit) {
     composable(Destination.Routines.route) {
@@ -108,7 +103,6 @@ fun NavGraphBuilder.activeExerciseScreen(navController: NavHostController) {
             onSwapExercise = { navController.navigate(swapExerciseRoute(routineId, dayId, exerciseId)) },
             onOpenNotes = { navController.navigate(notesRoute(routineId, dayId, exerciseId)) },
             onOpenSessionMenu = { navController.navigate(sessionMenuRoute(routineId, dayId, exerciseId)) },
-            onAddMedia = { navController.navigate(stubRoute("Galería")) },
             onExerciseAutoAdvance = { nextExerciseId ->
                 navController.navigate(activeExerciseRoute(routineId, dayId, nextExerciseId)) {
                     popUpTo(ACTIVE_EXERCISE_ROUTE_PATTERN) { inclusive = true }
@@ -168,19 +162,6 @@ fun NavGraphBuilder.sessionMenuScreen(navController: NavHostController) {
                     launchSingleTop = true
                 }
             },
-        )
-    }
-}
-
-fun NavGraphBuilder.genericStubScreen(navController: NavHostController) {
-    composable(
-        route = "stub/{$STUB_TITLE_ARG}",
-        arguments = listOf(navArgument(STUB_TITLE_ARG) { type = NavType.StringType })
-    ) { backStackEntry ->
-        val title = backStackEntry.arguments?.getString(STUB_TITLE_ARG).orEmpty()
-        ComingSoonScreen(
-            title = title,
-            navigationIcon = { BackNavigationIcon(onBack = { navController.popBackStack() }) }
         )
     }
 }

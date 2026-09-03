@@ -1,6 +1,7 @@
 package com.example.fitswap.data.di
 
 import com.example.fitswap.data.repository.ExerciseRepository
+import com.example.fitswap.data.repository.GalleryRepository
 import com.example.fitswap.data.repository.HistoryRepository
 import com.example.fitswap.data.repository.NotesRepository
 import com.example.fitswap.data.repository.RoutineRepository
@@ -9,6 +10,7 @@ import com.example.fitswap.data.repository.SettingsRepository
 import com.example.fitswap.data.repository.SubstituteRepository
 import com.example.fitswap.data.repository.WorkoutSessionRepository
 import com.example.fitswap.data.repository.fake.FakeExerciseRepository
+import com.example.fitswap.data.repository.fake.FakeGalleryRepository
 import com.example.fitswap.data.repository.fake.FakeHistoryRepository
 import com.example.fitswap.data.repository.fake.FakeNotesRepository
 import com.example.fitswap.data.repository.fake.FakeRoutineRepository
@@ -48,4 +50,7 @@ abstract class RepositoryModule {
 
     @Binds
     abstract fun bindSettingsRepository(impl: FakeSettingsRepository): SettingsRepository
+
+    @Binds
+    abstract fun bindGalleryRepository(impl: FakeGalleryRepository): GalleryRepository
 }

@@ -3,6 +3,7 @@ package com.example.fitswap.ui.screens.activeworkout
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.example.fitswap.data.repository.GalleryRepository
 import com.example.fitswap.data.repository.HistoryRepository
 import com.example.fitswap.data.repository.RoutineRepository
 import com.example.fitswap.data.repository.SetRepository
@@ -12,6 +13,7 @@ import com.example.fitswap.data.repository.WorkoutSessionRepository
 import com.example.fitswap.data.time.CurrentDateProvider
 import com.example.fitswap.domain.logic.SetPlanner
 import com.example.fitswap.domain.model.Exercise
+import com.example.fitswap.domain.model.GalleryItem
 import com.example.fitswap.domain.model.HistoryPoint
 import com.example.fitswap.domain.model.LoggedSet
 import com.example.fitswap.domain.model.PlannedSet
@@ -46,6 +48,7 @@ data class ActiveExerciseUiState(
     /** No nulo cuando el descanso tras la última serie del ejercicio terminó y hay un siguiente
      * ejercicio en el día al que avanzar automáticamente (ver [ActiveExerciseViewModel.consumeAutoAdvance]). */
     val readyToAdvanceExerciseId: String? = null,
+    val galleryItems: List<GalleryItem> = emptyList(),
 )
 
 data class PhaseStatus(val type: SetType, val state: PhaseState)
@@ -62,6 +65,7 @@ class ActiveExerciseViewModel @Inject constructor(
     private val workoutSessionRepository: WorkoutSessionRepository,
     private val currentDateProvider: CurrentDateProvider,
     private val settingsRepository: SettingsRepository,
+    private val galleryRepository: GalleryRepository,
 ) : ViewModel() {
 
     private val routineId: String = checkNotNull(savedStateHandle["routineId"])
@@ -79,6 +83,7 @@ class ActiveExerciseViewModel @Inject constructor(
     private var manualStageWeightOverrideKg: Double? = null
     private var substitutedExercise: Exercise? = null
     private var restJob: Job? = null
+    private var galleryJob: Job? = null
 
     /** Id (slot) del siguiente ejercicio del día, o nulo si este es el último — mismo orden
      * (`RoutineDay.exercises`) que ya usa `SessionMenuViewModel` para el estado hecho/pendiente. */
@@ -109,6 +114,13 @@ class ActiveExerciseViewModel @Inject constructor(
                 manualStageWeightOverrideKg = null
                 _uiState.update { it.copy(lastLoggedWeightKg = lastWeight) }
                 refreshUiState()
+
+                galleryJob?.cancel()
+                galleryJob = viewModelScope.launch {
+                    galleryRepository.observeGallery(activeExercise.id).collect { items ->
+                        _uiState.update { it.copy(galleryItems = items) }
+                    }
+                }
             }
         }
     }
@@ -202,6 +214,11 @@ class ActiveExerciseViewModel @Inject constructor(
      * no re-dispararla si `uiState` se vuelve a recolectar (ej. cambio de configuración). */
     fun consumeAutoAdvance() {
         _uiState.update { it.copy(readyToAdvanceExerciseId = null) }
+    }
+
+    fun addMedia(uri: String, isVideo: Boolean) {
+        val activeExercise = substitutedExercise ?: routineExercise?.exercise ?: return
+        viewModelScope.launch { galleryRepository.addMedia(activeExercise.id, uri, isVideo) }
     }
 
     private fun refreshUiState() {

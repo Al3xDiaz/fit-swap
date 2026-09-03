@@ -4,10 +4,12 @@ package com.example.fitswap.ui.screens.activeworkout
 
 import androidx.lifecycle.SavedStateHandle
 import com.example.fitswap.MainDispatcherRule
+import com.example.fitswap.data.repository.GalleryRepository
 import com.example.fitswap.data.repository.HistoryRepository
 import com.example.fitswap.data.repository.SettingsRepository
 import com.example.fitswap.data.repository.WorkoutSessionRepository
 import com.example.fitswap.data.repository.fake.ExerciseCatalog
+import com.example.fitswap.data.repository.fake.FakeGalleryRepository
 import com.example.fitswap.data.repository.fake.FakeHistoryRepository
 import com.example.fitswap.data.repository.fake.FakeRoutineRepository
 import com.example.fitswap.data.repository.fake.FakeSetRepository
@@ -63,6 +65,7 @@ class ActiveExerciseViewModelTest {
         historyRepository: HistoryRepository = FakeHistoryRepository(),
         workoutSessionRepository: WorkoutSessionRepository = FakeWorkoutSessionRepository(),
         settingsRepository: SettingsRepository = FakeSettingsRepository(),
+        galleryRepository: GalleryRepository = FakeGalleryRepository(),
     ) = ActiveExerciseViewModel(
         savedStateHandle = SavedStateHandle(
             mapOf("routineId" to ROUTINE_ID, "dayId" to dayId, "exerciseId" to exerciseId)
@@ -74,6 +77,7 @@ class ActiveExerciseViewModelTest {
         workoutSessionRepository = workoutSessionRepository,
         currentDateProvider = FixedCurrentDateProvider(DayOfWeek.TUESDAY),
         settingsRepository = settingsRepository,
+        galleryRepository = galleryRepository,
     )
 
     @Test
@@ -277,5 +281,17 @@ class ActiveExerciseViewModelTest {
         val history = historyRepository.observeHistory(ExerciseCatalog.elevacionesLaterales.id).first()
         assertEquals(1, history.size)
         assertEquals(SetType.WARMUP, history.single().type)
+    }
+
+    @Test
+    fun `agregar un medio lo refleja de inmediato en la galeria del ejercicio`() = runTest {
+        val viewModel = viewModel(ELEVACIONES_ID)
+        viewModel.uiState.first { !it.isLoading }
+
+        viewModel.addMedia("content://media/1", isVideo = false)
+
+        val state = viewModel.uiState.first { it.galleryItems.isNotEmpty() }
+        assertEquals(1, state.galleryItems.size)
+        assertEquals("content://media/1", state.galleryItems.single().uri)
     }
 }
