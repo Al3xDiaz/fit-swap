@@ -31,6 +31,10 @@ class FakeSettingsRepository @Inject constructor() : SettingsRepository {
         settings.update { it.copy(unitSystem = unitSystem) }
     }
 
+    override suspend fun updateRestTimerSeconds(restTimerSeconds: Int) {
+        settings.update { it.copy(restTimerSeconds = restTimerSeconds) }
+    }
+
     override suspend fun replaceSettings(settings: AppSettings) {
         this.settings.value = settings
     }

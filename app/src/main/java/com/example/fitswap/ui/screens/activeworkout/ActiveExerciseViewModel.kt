@@ -6,6 +6,7 @@ import androidx.lifecycle.viewModelScope
 import com.example.fitswap.data.repository.HistoryRepository
 import com.example.fitswap.data.repository.RoutineRepository
 import com.example.fitswap.data.repository.SetRepository
+import com.example.fitswap.data.repository.SettingsRepository
 import com.example.fitswap.data.repository.SubstituteRepository
 import com.example.fitswap.data.repository.WorkoutSessionRepository
 import com.example.fitswap.data.time.CurrentDateProvider
@@ -42,6 +43,9 @@ data class ActiveExerciseUiState(
     val restRemainingSeconds: Int? = null,
     val restTotalSeconds: Int = 0,
     val isComplete: Boolean = false,
+    /** No nulo cuando el descanso tras la última serie del ejercicio terminó y hay un siguiente
+     * ejercicio en el día al que avanzar automáticamente (ver [ActiveExerciseViewModel.consumeAutoAdvance]). */
+    val readyToAdvanceExerciseId: String? = null,
 )
 
 data class PhaseStatus(val type: SetType, val state: PhaseState)
@@ -57,6 +61,7 @@ class ActiveExerciseViewModel @Inject constructor(
     private val substituteRepository: SubstituteRepository,
     private val workoutSessionRepository: WorkoutSessionRepository,
     private val currentDateProvider: CurrentDateProvider,
+    private val settingsRepository: SettingsRepository,
 ) : ViewModel() {
 
     private val routineId: String = checkNotNull(savedStateHandle["routineId"])
@@ -75,6 +80,10 @@ class ActiveExerciseViewModel @Inject constructor(
     private var substitutedExercise: Exercise? = null
     private var restJob: Job? = null
 
+    /** Id (slot) del siguiente ejercicio del día, o nulo si este es el último — mismo orden
+     * (`RoutineDay.exercises`) que ya usa `SessionMenuViewModel` para el estado hecho/pendiente. */
+    private var nextRoutineExerciseId: String? = null
+
     init {
         viewModelScope.launch {
             val routine = routineRepository.observeRoutine(routineId).first { it != null } ?: return@launch
@@ -82,7 +91,11 @@ class ActiveExerciseViewModel @Inject constructor(
             val exercise = day.exercises.firstOrNull { it.id == exerciseId } ?: return@launch
 
             routineExercise = exercise
-            plan = SetPlanner.buildPlan(exercise)
+            val exerciseIndex = day.exercises.indexOf(exercise)
+            nextRoutineExerciseId = day.exercises.getOrNull(exerciseIndex + 1)?.id
+
+            val restTimerSeconds = settingsRepository.observeSettings().first().restTimerSeconds
+            plan = SetPlanner.buildPlan(exercise, restTimerSeconds)
 
             val existingLogged = setRepository.observeLoggedSets(exercise.id).first()
             planIndex = existingLogged.size.coerceAtMost(plan.size)
@@ -158,11 +171,15 @@ class ActiveExerciseViewModel @Inject constructor(
 
         planIndex++
         manualStageWeightOverrideKg = null
-        startRestTimer(current.restSeconds)
+        startRestTimer(current.restSeconds, isLastSetOfExercise = planIndex >= plan.size)
         refreshUiState()
     }
 
-    private fun startRestTimer(totalSeconds: Int) {
+    /** Al agotarse el descanso tras la última serie del ejercicio, si hay un siguiente ejercicio en
+     * el día, avanza automáticamente (ver [readyToAdvanceExerciseId consumption][consumeAutoAdvance]
+     * en la Composable). Si es el último ejercicio del día, no hay a dónde avanzar — el usuario sigue
+     * manualmente desde el menú de sesión. */
+    private fun startRestTimer(totalSeconds: Int, isLastSetOfExercise: Boolean) {
         restJob?.cancel()
         restJob = viewModelScope.launch {
             var remaining = totalSeconds
@@ -172,8 +189,19 @@ class ActiveExerciseViewModel @Inject constructor(
                 remaining--
                 _uiState.update { it.copy(restRemainingSeconds = remaining) }
             }
-            _uiState.update { it.copy(restRemainingSeconds = null) }
+            _uiState.update {
+                it.copy(
+                    restRemainingSeconds = null,
+                    readyToAdvanceExerciseId = if (isLastSetOfExercise) nextRoutineExerciseId else null,
+                )
+            }
         }
+    }
+
+    /** Llamado por la Composable una vez que ya disparó la navegación al siguiente ejercicio, para
+     * no re-dispararla si `uiState` se vuelve a recolectar (ej. cambio de configuración). */
+    fun consumeAutoAdvance() {
+        _uiState.update { it.copy(readyToAdvanceExerciseId = null) }
     }
 
     private fun refreshUiState() {

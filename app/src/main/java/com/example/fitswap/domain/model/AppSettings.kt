@@ -16,4 +16,6 @@ data class AppSettings(
     val theme: AppTheme = AppTheme.SYSTEM,
     val uiDensity: UiDensity = UiDensity.COMFORTABLE,
     val unitSystem: UnitSystem = UnitSystem.METRIC,
+    /** Descanso entre series, igual para todo ejercicio (ver `SetPlanner.DEFAULT_REST_SECONDS`). */
+    val restTimerSeconds: Int = 90,
 )

@@ -2,6 +2,7 @@ package com.example.fitswap.ui.screens.settings
 
 import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.graphics.toPixelMap
+import androidx.compose.ui.test.assertTextEquals
 import androidx.compose.ui.test.captureToImage
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
 import androidx.compose.ui.test.onNodeWithContentDescription
@@ -47,6 +48,21 @@ class SettingsFlowTest {
             "esperaba que el tema oscuro sea más oscuro que el claro (claro=$lightLuminance, oscuro=$darkLuminance)",
             darkLuminance < lightLuminance
         )
+    }
+
+    @Test
+    fun elegirUnTimerDeDescansoEnConfiguracionesSeUsaAlRegistrarUnaSerie() {
+        composeTestRule.onNodeWithContentDescription("Abrir menú").performClick()
+        composeTestRule.onNodeWithTag("drawerItem_settings").performClick()
+        composeTestRule.onNodeWithTag("restTimerOption_30").performClick()
+
+        composeTestRule.onNodeWithContentDescription("Abrir menú").performClick()
+        composeTestRule.onNodeWithTag("drawerItem_routines").performClick()
+        composeTestRule.onNodeWithTag("routineListItem_default").performClick()
+        composeTestRule.onNodeWithTag("startWorkoutButton_default-martes").performClick()
+
+        composeTestRule.onNodeWithTag("registerSetButton").performClick()
+        composeTestRule.onNodeWithTag("restTimerLabel").assertTextEquals("⏱ Descanso: 00:30")
     }
 }
 

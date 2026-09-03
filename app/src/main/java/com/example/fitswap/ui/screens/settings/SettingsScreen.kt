@@ -75,9 +75,21 @@ fun SettingsScreen(
                     )
                 }
             }
+            SettingsSection(title = "Timer de descanso entre series") {
+                restTimerOptionsSeconds.forEach { seconds ->
+                    SettingsOptionRow(
+                        label = restTimerLabel(seconds),
+                        selected = settings.restTimerSeconds == seconds,
+                        onClick = { viewModel.onRestTimerSecondsSelected(seconds) },
+                        testTag = "restTimerOption_$seconds"
+                    )
+                }
+            }
         }
     }
 }
+
+private val restTimerOptionsSeconds = listOf(30, 60, 90, 120, 180)
 
 @Composable
 private fun SettingsSection(title: String, content: @Composable ColumnScope.() -> Unit) {
@@ -117,3 +129,7 @@ private fun unitSystemLabel(unitSystem: UnitSystem): String = when (unitSystem) 
     UnitSystem.METRIC -> "Métrico (kg, cm)"
     UnitSystem.IMPERIAL -> "Imperial (lb, in)"
 }
+
+private fun restTimerLabel(seconds: Int): String =
+    if (seconds >= 60) "${seconds / 60} min" + if (seconds % 60 != 0) " ${seconds % 60} s" else ""
+    else "$seconds s"

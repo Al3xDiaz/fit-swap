@@ -4,6 +4,7 @@ import com.example.fitswap.domain.model.Exercise
 import com.example.fitswap.domain.model.RoutineExercise
 import com.example.fitswap.domain.model.SetType
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertTrue
 import org.junit.Test
 
 class SetPlannerTest {
@@ -87,8 +88,34 @@ class SetPlannerTest {
     }
 
     @Test
-    fun `parseRestSeconds interpreta segundos y minutos`() {
-        assertEquals(60, SetPlanner.parseRestSeconds("60–75 s"))
-        assertEquals(120, SetPlanner.parseRestSeconds("2–3 min"))
+    fun `el descanso de cada etapa usa el valor fijo pasado, no el restLabel del ejercicio`() {
+        val routineExercise = RoutineExercise(
+            id = "martes-press-de-pecho",
+            exercise = exercise,
+            approachSets = 1,
+            effectiveSets = 2,
+            effectiveRepsLabel = "8–12",
+            restLabel = "2–3 min", // ignorado a propósito: el timer es global (Configuraciones, M9).
+        )
+
+        val plan = SetPlanner.buildPlan(routineExercise, restSeconds = 45)
+
+        assertTrue(plan.all { it.restSeconds == 45 })
+    }
+
+    @Test
+    fun `sin restSeconds explicito usa el default fijo del planificador`() {
+        val routineExercise = RoutineExercise(
+            id = "martes-press-de-pecho",
+            exercise = exercise,
+            approachSets = 0,
+            effectiveSets = 1,
+            effectiveRepsLabel = "8–12",
+            restLabel = "2–3 min",
+        )
+
+        val plan = SetPlanner.buildPlan(routineExercise)
+
+        assertTrue(plan.all { it.restSeconds == SetPlanner.DEFAULT_REST_SECONDS })
     }
 }

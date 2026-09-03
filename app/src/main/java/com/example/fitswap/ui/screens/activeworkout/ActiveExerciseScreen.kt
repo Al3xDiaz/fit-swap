@@ -19,6 +19,7 @@ import androidx.compose.material3.SecondaryTabRow
 import androidx.compose.material3.Tab
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.remember
@@ -41,10 +42,18 @@ fun ActiveExerciseScreen(
     onOpenNotes: () -> Unit,
     onOpenSessionMenu: () -> Unit,
     onAddMedia: () -> Unit,
+    onExerciseAutoAdvance: (nextExerciseId: String) -> Unit,
     viewModel: ActiveExerciseViewModel = hiltViewModel(),
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     var selectedTab by remember { mutableIntStateOf(0) }
+
+    LaunchedEffect(uiState.readyToAdvanceExerciseId) {
+        uiState.readyToAdvanceExerciseId?.let { nextExerciseId ->
+            viewModel.consumeAutoAdvance()
+            onExerciseAutoAdvance(nextExerciseId)
+        }
+    }
 
     Scaffold(
         topBar = {

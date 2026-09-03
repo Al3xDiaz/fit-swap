@@ -15,11 +15,12 @@ import com.example.fitswap.domain.model.SetType
  */
 object SetPlanner {
 
+    const val DEFAULT_REST_SECONDS = 90
+
     private const val DEFAULT_EFFECTIVE_WEIGHT_KG = 1.0
     private const val WARMUP_WEIGHT_FACTOR = 0.5
     private const val DEFAULT_APPROACH_WEIGHT_FACTOR = 0.6
     private const val DEFAULT_REPS = 10
-    private const val DEFAULT_REST_SECONDS = 60
 
     private val firstNumberRegex = Regex("\\d+")
 
@@ -27,11 +28,15 @@ object SetPlanner {
     fun suggestedEffectiveWeight(lastLoggedWeightKg: Double?): Double =
         lastLoggedWeightKg ?: DEFAULT_EFFECTIVE_WEIGHT_KG
 
-    fun buildPlan(routineExercise: RoutineExercise): List<PlannedSet> {
+    /**
+     * [restSeconds] es el timer de descanso configurado en Configuraciones (M9), igual para todo
+     * ejercicio/etapa — [RoutineExercise.restLabel] ya no lo determina (ver `restLabel` en
+     * `domain/model/Routine.kt`).
+     */
+    fun buildPlan(routineExercise: RoutineExercise, restSeconds: Int = DEFAULT_REST_SECONDS): List<PlannedSet> {
         val approachWeightFactor = parseApproachWeightFactor(routineExercise.approachGuideline)
         val effectiveReps = parseReps(routineExercise.effectiveRepsLabel)
         val approachReps = routineExercise.approachGuideline?.let(::parseReps) ?: effectiveReps
-        val restSeconds = parseRestSeconds(routineExercise.restLabel)
 
         val warmup = PlannedSet(
             type = SetType.WARMUP,
@@ -72,9 +77,4 @@ object SetPlanner {
             ?.let { firstNumberRegex.find(it)?.value?.toIntOrNull() }
             ?.let { percentage -> percentage / 100.0 }
             ?: DEFAULT_APPROACH_WEIGHT_FACTOR
-
-    internal fun parseRestSeconds(label: String): Int {
-        val number = firstNumberRegex.find(label)?.value?.toIntOrNull() ?: DEFAULT_REST_SECONDS
-        return if (label.contains("min")) number * 60 else number
-    }
 }

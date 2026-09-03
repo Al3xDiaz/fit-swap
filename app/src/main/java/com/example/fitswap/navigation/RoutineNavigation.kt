@@ -109,6 +109,11 @@ fun NavGraphBuilder.activeExerciseScreen(navController: NavHostController) {
             onOpenNotes = { navController.navigate(notesRoute(routineId, dayId, exerciseId)) },
             onOpenSessionMenu = { navController.navigate(sessionMenuRoute(routineId, dayId, exerciseId)) },
             onAddMedia = { navController.navigate(stubRoute("Galería")) },
+            onExerciseAutoAdvance = { nextExerciseId ->
+                navController.navigate(activeExerciseRoute(routineId, dayId, nextExerciseId)) {
+                    popUpTo(ACTIVE_EXERCISE_ROUTE_PATTERN) { inclusive = true }
+                }
+            },
         )
     }
 }

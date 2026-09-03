@@ -33,4 +33,8 @@ class SettingsViewModel @Inject constructor(
     fun onUnitSystemSelected(unitSystem: UnitSystem) {
         viewModelScope.launch { settingsRepository.updateUnitSystem(unitSystem) }
     }
+
+    fun onRestTimerSecondsSelected(restTimerSeconds: Int) {
+        viewModelScope.launch { settingsRepository.updateRestTimerSeconds(restTimerSeconds) }
+    }
 }

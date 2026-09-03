@@ -1,22 +1,28 @@
+@file:OptIn(kotlinx.coroutines.ExperimentalCoroutinesApi::class)
+
 package com.example.fitswap.ui.screens.activeworkout
 
 import androidx.lifecycle.SavedStateHandle
 import com.example.fitswap.MainDispatcherRule
 import com.example.fitswap.data.repository.HistoryRepository
+import com.example.fitswap.data.repository.SettingsRepository
 import com.example.fitswap.data.repository.WorkoutSessionRepository
 import com.example.fitswap.data.repository.fake.ExerciseCatalog
 import com.example.fitswap.data.repository.fake.FakeHistoryRepository
 import com.example.fitswap.data.repository.fake.FakeRoutineRepository
 import com.example.fitswap.data.repository.fake.FakeSetRepository
+import com.example.fitswap.data.repository.fake.FakeSettingsRepository
 import com.example.fitswap.data.repository.fake.FakeSubstituteRepository
 import com.example.fitswap.data.repository.fake.FakeWorkoutSessionRepository
 import com.example.fitswap.data.time.FixedCurrentDateProvider
 import com.example.fitswap.domain.model.SetType
 import java.time.DayOfWeek
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.test.advanceUntilIdle
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNotNull
+import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
@@ -29,8 +35,15 @@ private const val SUNDAY_DAY_ID = "default-domingo"
 // approachSets = 0, effectiveSets = 4, sin historial -> plan = [WARMUP, EFFECTIVE x4], peso 1kg
 private const val ELEVACIONES_ID = "default-martes-elevaciones-laterales"
 
+// segundo ejercicio del día martes, inmediatamente después de ELEVACIONES_ID.
+private const val PRESS_MILITAR_ID = "default-martes-press-militar-maquina"
+
 // approachSets = 1, effectiveSets = 4, con historial (60kg) -> plan = [WARMUP, APPROACH, EFFECTIVE x4]
 private const val PRESS_DE_PECHO_ID = "default-martes-press-de-pecho"
+
+// último ejercicio del día martes -> no hay siguiente al que auto-avanzar.
+// approachSets = 0, effectiveSets = 2 -> plan = [WARMUP, EFFECTIVE, EFFECTIVE]
+private const val EXTENSION_TRICEPS_OVERHEAD_ID = "default-martes-extension-triceps-overhead"
 
 // approachSets = 2, effectiveSets = 4, con historial propio (80kg); su sustituto es "prensa-sentadilla-ligera"
 private const val SENTADILLA_ID = "default-jueves-sentadilla-hack-prensa"
@@ -49,6 +62,7 @@ class ActiveExerciseViewModelTest {
         setRepository: FakeSetRepository = FakeSetRepository(),
         historyRepository: HistoryRepository = FakeHistoryRepository(),
         workoutSessionRepository: WorkoutSessionRepository = FakeWorkoutSessionRepository(),
+        settingsRepository: SettingsRepository = FakeSettingsRepository(),
     ) = ActiveExerciseViewModel(
         savedStateHandle = SavedStateHandle(
             mapOf("routineId" to ROUTINE_ID, "dayId" to dayId, "exerciseId" to exerciseId)
@@ -59,6 +73,7 @@ class ActiveExerciseViewModelTest {
         substituteRepository = FakeSubstituteRepository(),
         workoutSessionRepository = workoutSessionRepository,
         currentDateProvider = FixedCurrentDateProvider(DayOfWeek.TUESDAY),
+        settingsRepository = settingsRepository,
     )
 
     @Test
@@ -144,15 +159,79 @@ class ActiveExerciseViewModelTest {
     }
 
     @Test
-    fun `registrar una serie arranca el temporizador de descanso con la duracion del ejercicio`() = runTest {
-        val viewModel = viewModel(ELEVACIONES_ID)
+    fun `registrar una serie arranca el temporizador de descanso con la duracion configurada`() = runTest {
+        val settingsRepository = FakeSettingsRepository()
+        settingsRepository.updateRestTimerSeconds(45)
+        val viewModel = viewModel(ELEVACIONES_ID, settingsRepository = settingsRepository)
         viewModel.uiState.first { !it.isLoading }
 
         viewModel.registerSet()
 
         val state = viewModel.uiState.first()
         assertNotNull(state.restRemainingSeconds)
-        assertEquals(60, state.restTotalSeconds) // "60–75 s" -> primer numero, 60
+        // El timer es fijo por Configuraciones (M9), ya no se deriva del restLabel del ejercicio.
+        assertEquals(45, state.restTotalSeconds)
+    }
+
+    @Test
+    fun `al agotar el descanso de la ultima serie avanza automaticamente al siguiente ejercicio del dia`() = runTest {
+        val settingsRepository = FakeSettingsRepository()
+        settingsRepository.updateRestTimerSeconds(1)
+        val viewModel = viewModel(ELEVACIONES_ID, settingsRepository = settingsRepository)
+        viewModel.uiState.first { !it.isLoading }
+
+        repeat(5) { viewModel.registerSet() } // 1 warmup + 4 effective = plan completo
+        advanceUntilIdle()
+
+        val state = viewModel.uiState.first()
+        assertTrue(state.isComplete)
+        assertEquals(PRESS_MILITAR_ID, state.readyToAdvanceExerciseId)
+    }
+
+    @Test
+    fun `consumeAutoAdvance limpia el id de avance para no re-disparar la navegacion`() = runTest {
+        val settingsRepository = FakeSettingsRepository()
+        settingsRepository.updateRestTimerSeconds(1)
+        val viewModel = viewModel(ELEVACIONES_ID, settingsRepository = settingsRepository)
+        viewModel.uiState.first { !it.isLoading }
+
+        repeat(5) { viewModel.registerSet() }
+        advanceUntilIdle()
+        assertNotNull(viewModel.uiState.first().readyToAdvanceExerciseId)
+
+        viewModel.consumeAutoAdvance()
+
+        assertNull(viewModel.uiState.first().readyToAdvanceExerciseId)
+    }
+
+    @Test
+    fun `el ultimo ejercicio del dia no dispara avance automatico`() = runTest {
+        val settingsRepository = FakeSettingsRepository()
+        settingsRepository.updateRestTimerSeconds(1)
+        val viewModel = viewModel(EXTENSION_TRICEPS_OVERHEAD_ID, settingsRepository = settingsRepository)
+        viewModel.uiState.first { !it.isLoading }
+
+        repeat(3) { viewModel.registerSet() } // 1 warmup + 2 effective = plan completo
+        advanceUntilIdle()
+
+        val state = viewModel.uiState.first()
+        assertTrue(state.isComplete)
+        assertNull(state.readyToAdvanceExerciseId)
+    }
+
+    @Test
+    fun `terminar una etapa intermedia no dispara avance automatico aunque el descanso termine`() = runTest {
+        val settingsRepository = FakeSettingsRepository()
+        settingsRepository.updateRestTimerSeconds(1)
+        val viewModel = viewModel(ELEVACIONES_ID, settingsRepository = settingsRepository)
+        viewModel.uiState.first { !it.isLoading }
+
+        viewModel.registerSet() // solo el calentamiento, quedan series efectivas pendientes
+        advanceUntilIdle()
+
+        val state = viewModel.uiState.first()
+        assertTrue(!state.isComplete)
+        assertNull(state.readyToAdvanceExerciseId)
     }
 
     @Test
