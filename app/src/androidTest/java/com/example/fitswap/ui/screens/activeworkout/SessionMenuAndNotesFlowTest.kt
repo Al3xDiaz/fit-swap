@@ -8,6 +8,7 @@ import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performTextInput
 import com.example.fitswap.MainActivity
+import com.example.fitswap.waitUntilTagExists
 import dagger.hilt.android.testing.HiltAndroidRule
 import dagger.hilt.android.testing.HiltAndroidTest
 import org.junit.Before
@@ -32,15 +33,19 @@ class SessionMenuAndNotesFlowTest {
     fun cierraElLoopCompletoDeEntrenamientoDePuntaAPunta() {
         composeTestRule.onNodeWithTag("routineListItem_default").performClick()
         composeTestRule.onNodeWithTag("startWorkoutButton_default-martes").performClick()
+        composeTestRule.waitUntilTagExists("registerSetButton")
         composeTestRule.onNodeWithTag("appTopBarTitle").assertTextEquals("Elevaciones laterales")
 
         // Menú de sesión: saltar a otro ejercicio del día sin perder el progreso.
         composeTestRule.onNodeWithTag("sessionMenuButton").performClick()
+        composeTestRule.waitUntilTagExists("sessionMenuItem_default-martes-press-militar-maquina")
         composeTestRule.onNodeWithTag("sessionMenuItem_default-martes-press-militar-maquina").performClick()
+        composeTestRule.waitUntilTagExists("registerSetButton")
         composeTestRule.onNodeWithTag("appTopBarTitle").assertTextEquals("Press militar en máquina")
 
         // Notas: agregar una nota sin perder el contexto del entrenamiento.
         composeTestRule.onNodeWithTag("notesButton").performClick()
+        composeTestRule.waitUntilTagExists("noteInputField")
         composeTestRule.onNodeWithTag("noteInputField").performTextInput("Ajustar asiento")
         composeTestRule.onNodeWithTag("addNoteButton").performClick()
         composeTestRule.onNodeWithText("Ajustar asiento").assertTextEquals("Ajustar asiento")
@@ -49,6 +54,7 @@ class SessionMenuAndNotesFlowTest {
 
         // Terminar rutina (con confirmación) vuelve a Rutinas.
         composeTestRule.onNodeWithTag("sessionMenuButton").performClick()
+        composeTestRule.waitUntilTagExists("finishRoutineItem")
         composeTestRule.onNodeWithTag("finishRoutineItem").performClick()
         composeTestRule.onNodeWithText("Confirmar").performClick()
         composeTestRule.onNodeWithTag("appTopBarTitle").assertTextEquals("Rutinas")
@@ -58,8 +64,10 @@ class SessionMenuAndNotesFlowTest {
     fun cancelarTerminarRutinaMantieneElMenuDeSesion() {
         composeTestRule.onNodeWithTag("routineListItem_default").performClick()
         composeTestRule.onNodeWithTag("startWorkoutButton_default-martes").performClick()
+        composeTestRule.waitUntilTagExists("sessionMenuButton")
 
         composeTestRule.onNodeWithTag("sessionMenuButton").performClick()
+        composeTestRule.waitUntilTagExists("finishRoutineItem")
         composeTestRule.onNodeWithTag("finishRoutineItem").performClick()
         composeTestRule.onNodeWithText("Cancelar").performClick()
 

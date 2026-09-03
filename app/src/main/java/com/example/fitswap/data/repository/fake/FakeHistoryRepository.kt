@@ -64,7 +64,7 @@ private fun points(
  * sesiones para que Historial de ejercicio tenga con qué mostrarse. La sesión más reciente de cada
  * uno incluye series de aproximación para poder verificar que el volumen/peso máximo las excluyen.
  */
-private fun buildHistorySeed(): Map<String, List<HistoryPoint>> {
+internal fun buildHistorySeed(): Map<String, List<HistoryPoint>> {
     val pressDePecho = "press-de-pecho"
     val sentadilla = "sentadilla-hack-prensa"
 

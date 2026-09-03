@@ -15,23 +15,29 @@ import javax.inject.Singleton
 @Singleton
 class FakeSubstituteRepository @Inject constructor() : SubstituteRepository {
 
-    private val groups: List<List<Exercise>> = listOf(
-        listOf(ExerciseCatalog.pressDePecho, ExerciseCatalog.pressInclinado, ExerciseCatalog.pechoPressAperturas),
-        listOf(ExerciseCatalog.remoConBarraOMancuerna, ExerciseCatalog.remoChestSupported, ExerciseCatalog.remoEnMaquinaOMancuerna),
-        listOf(ExerciseCatalog.jalonAlPechoDominadas, ExerciseCatalog.jalonAlPecho),
-        listOf(ExerciseCatalog.sentadillaHackSquatPrensa, ExerciseCatalog.prensaSentadillaLigera),
-        listOf(ExerciseCatalog.curlBicepsBarra, ExerciseCatalog.curlBicepsAlternado, ExerciseCatalog.curlMartillo),
-        listOf(
-            ExerciseCatalog.extensionTricepsCuerda,
-            ExerciseCatalog.tricepsEnCuerda,
-            ExerciseCatalog.extensionTricepsOverhead,
-            ExerciseCatalog.fondosParaTriceps,
-        ),
-        listOf(ExerciseCatalog.pressMilitarMaquina, ExerciseCatalog.pressDeHombroEnMaquina),
-    )
+    private val groups: List<List<Exercise>> = substituteGroups()
 
     override suspend fun substitutesFor(exerciseId: String): List<Exercise> {
         val group = groups.firstOrNull { group -> group.any { it.id == exerciseId } } ?: return emptyList()
         return group.filterNot { it.id == exerciseId }
     }
 }
+
+/**
+ * Grupos de ejercicios equivalentes — top-level para que tanto [FakeSubstituteRepository] como
+ * `DatabaseSeeder` (M11) usen la misma data curada, en vez de mantener dos copias.
+ */
+internal fun substituteGroups(): List<List<Exercise>> = listOf(
+    listOf(ExerciseCatalog.pressDePecho, ExerciseCatalog.pressInclinado, ExerciseCatalog.pechoPressAperturas),
+    listOf(ExerciseCatalog.remoConBarraOMancuerna, ExerciseCatalog.remoChestSupported, ExerciseCatalog.remoEnMaquinaOMancuerna),
+    listOf(ExerciseCatalog.jalonAlPechoDominadas, ExerciseCatalog.jalonAlPecho),
+    listOf(ExerciseCatalog.sentadillaHackSquatPrensa, ExerciseCatalog.prensaSentadillaLigera),
+    listOf(ExerciseCatalog.curlBicepsBarra, ExerciseCatalog.curlBicepsAlternado, ExerciseCatalog.curlMartillo),
+    listOf(
+        ExerciseCatalog.extensionTricepsCuerda,
+        ExerciseCatalog.tricepsEnCuerda,
+        ExerciseCatalog.extensionTricepsOverhead,
+        ExerciseCatalog.fondosParaTriceps,
+    ),
+    listOf(ExerciseCatalog.pressMilitarMaquina, ExerciseCatalog.pressDeHombroEnMaquina),
+)

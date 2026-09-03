@@ -9,48 +9,54 @@ import com.example.fitswap.data.repository.SetRepository
 import com.example.fitswap.data.repository.SettingsRepository
 import com.example.fitswap.data.repository.SubstituteRepository
 import com.example.fitswap.data.repository.WorkoutSessionRepository
-import com.example.fitswap.data.repository.fake.FakeExerciseRepository
-import com.example.fitswap.data.repository.fake.FakeGalleryRepository
-import com.example.fitswap.data.repository.fake.FakeHistoryRepository
-import com.example.fitswap.data.repository.fake.FakeNotesRepository
-import com.example.fitswap.data.repository.fake.FakeRoutineRepository
-import com.example.fitswap.data.repository.fake.FakeSetRepository
 import com.example.fitswap.data.repository.fake.FakeSettingsRepository
-import com.example.fitswap.data.repository.fake.FakeSubstituteRepository
 import com.example.fitswap.data.repository.fake.FakeWorkoutSessionRepository
+import com.example.fitswap.data.repository.room.RoomExerciseRepository
+import com.example.fitswap.data.repository.room.RoomGalleryRepository
+import com.example.fitswap.data.repository.room.RoomHistoryRepository
+import com.example.fitswap.data.repository.room.RoomNotesRepository
+import com.example.fitswap.data.repository.room.RoomRoutineRepository
+import com.example.fitswap.data.repository.room.RoomSetRepository
+import com.example.fitswap.data.repository.room.RoomSubstituteRepository
 import dagger.Binds
 import dagger.Module
 import dagger.hilt.InstallIn
 import dagger.hilt.components.SingletonComponent
 
+/**
+ * Desde M11, la mayoría de los repositorios corren contra Room ([RoomRoutineRepository] y
+ * hermanos) — [WorkoutSessionRepository] queda en memoria a propósito (es estado de la sesión de
+ * entrenamiento en curso, no datos persistentes, ver su propio KDoc) y [SettingsRepository] queda
+ * en memoria hasta M12 (DataStore).
+ */
 @Module
 @InstallIn(SingletonComponent::class)
 abstract class RepositoryModule {
 
     @Binds
-    abstract fun bindRoutineRepository(impl: FakeRoutineRepository): RoutineRepository
+    abstract fun bindRoutineRepository(impl: RoomRoutineRepository): RoutineRepository
 
     @Binds
-    abstract fun bindSetRepository(impl: FakeSetRepository): SetRepository
+    abstract fun bindSetRepository(impl: RoomSetRepository): SetRepository
 
     @Binds
-    abstract fun bindHistoryRepository(impl: FakeHistoryRepository): HistoryRepository
+    abstract fun bindHistoryRepository(impl: RoomHistoryRepository): HistoryRepository
 
     @Binds
-    abstract fun bindSubstituteRepository(impl: FakeSubstituteRepository): SubstituteRepository
+    abstract fun bindSubstituteRepository(impl: RoomSubstituteRepository): SubstituteRepository
 
     @Binds
     abstract fun bindWorkoutSessionRepository(impl: FakeWorkoutSessionRepository): WorkoutSessionRepository
 
     @Binds
-    abstract fun bindNotesRepository(impl: FakeNotesRepository): NotesRepository
+    abstract fun bindNotesRepository(impl: RoomNotesRepository): NotesRepository
 
     @Binds
-    abstract fun bindExerciseRepository(impl: FakeExerciseRepository): ExerciseRepository
+    abstract fun bindExerciseRepository(impl: RoomExerciseRepository): ExerciseRepository
 
     @Binds
     abstract fun bindSettingsRepository(impl: FakeSettingsRepository): SettingsRepository
 
     @Binds
-    abstract fun bindGalleryRepository(impl: FakeGalleryRepository): GalleryRepository
+    abstract fun bindGalleryRepository(impl: RoomGalleryRepository): GalleryRepository
 }
