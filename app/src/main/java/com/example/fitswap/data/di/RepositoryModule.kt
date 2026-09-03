@@ -9,7 +9,7 @@ import com.example.fitswap.data.repository.SetRepository
 import com.example.fitswap.data.repository.SettingsRepository
 import com.example.fitswap.data.repository.SubstituteRepository
 import com.example.fitswap.data.repository.WorkoutSessionRepository
-import com.example.fitswap.data.repository.fake.FakeSettingsRepository
+import com.example.fitswap.data.repository.datastore.DataStoreSettingsRepository
 import com.example.fitswap.data.repository.fake.FakeWorkoutSessionRepository
 import com.example.fitswap.data.repository.room.RoomExerciseRepository
 import com.example.fitswap.data.repository.room.RoomGalleryRepository
@@ -25,9 +25,9 @@ import dagger.hilt.components.SingletonComponent
 
 /**
  * Desde M11, la mayoría de los repositorios corren contra Room ([RoomRoutineRepository] y
- * hermanos) — [WorkoutSessionRepository] queda en memoria a propósito (es estado de la sesión de
- * entrenamiento en curso, no datos persistentes, ver su propio KDoc) y [SettingsRepository] queda
- * en memoria hasta M12 (DataStore).
+ * hermanos); desde M12, [SettingsRepository] corre contra DataStore
+ * ([DataStoreSettingsRepository]). [WorkoutSessionRepository] queda en memoria a propósito — es
+ * estado de la sesión de entrenamiento en curso, no datos persistentes (ver su propio KDoc).
  */
 @Module
 @InstallIn(SingletonComponent::class)
@@ -55,7 +55,7 @@ abstract class RepositoryModule {
     abstract fun bindExerciseRepository(impl: RoomExerciseRepository): ExerciseRepository
 
     @Binds
-    abstract fun bindSettingsRepository(impl: FakeSettingsRepository): SettingsRepository
+    abstract fun bindSettingsRepository(impl: DataStoreSettingsRepository): SettingsRepository
 
     @Binds
     abstract fun bindGalleryRepository(impl: RoomGalleryRepository): GalleryRepository
