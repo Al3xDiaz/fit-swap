@@ -1,5 +1,7 @@
 package com.example.fitswap.data.di
 
+import com.example.fitswap.data.repository.BodyMeasurementRepository
+import com.example.fitswap.data.repository.BodyProfileRepository
 import com.example.fitswap.data.repository.ExerciseRepository
 import com.example.fitswap.data.repository.GalleryRepository
 import com.example.fitswap.data.repository.HistoryRepository
@@ -10,6 +12,8 @@ import com.example.fitswap.data.repository.SettingsRepository
 import com.example.fitswap.data.repository.SubstituteRepository
 import com.example.fitswap.data.repository.WorkoutSessionRepository
 import com.example.fitswap.data.repository.datastore.DataStoreSettingsRepository
+import com.example.fitswap.data.repository.fake.FakeBodyMeasurementRepository
+import com.example.fitswap.data.repository.fake.FakeBodyProfileRepository
 import com.example.fitswap.data.repository.fake.FakeWorkoutSessionRepository
 import com.example.fitswap.data.repository.room.RoomExerciseRepository
 import com.example.fitswap.data.repository.room.RoomGalleryRepository
@@ -59,4 +63,11 @@ abstract class RepositoryModule {
 
     @Binds
     abstract fun bindGalleryRepository(impl: RoomGalleryRepository): GalleryRepository
+
+    /** M13, todavía fake — Room llega en M14, mismo patrón de M2→M11. */
+    @Binds
+    abstract fun bindBodyProfileRepository(impl: FakeBodyProfileRepository): BodyProfileRepository
+
+    @Binds
+    abstract fun bindBodyMeasurementRepository(impl: FakeBodyMeasurementRepository): BodyMeasurementRepository
 }

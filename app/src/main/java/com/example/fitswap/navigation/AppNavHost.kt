@@ -60,11 +60,17 @@ fun AppNavHost(navController: NavHostController = rememberNavController()) {
             )
             toolsScreen(onMenuClick = { scope.launch { drawerState.open() } })
             settingsScreen(onMenuClick = { scope.launch { drawerState.open() } })
+            bodyMeasurementsScreen(
+                navController = navController,
+                onMenuClick = { scope.launch { drawerState.open() } }
+            )
+            addBodyMeasurementScreen(navController = navController)
 
             topLevelDestinations
                 .filter {
                     it != Destination.Routines && it != Destination.Exercises &&
-                        it != Destination.Summary && it != Destination.Tools && it != Destination.Settings
+                        it != Destination.Summary && it != Destination.Tools && it != Destination.Settings &&
+                        it != Destination.Measurements
                 }
                 .forEach { destination ->
                     composable(destination.route) {
