@@ -3,6 +3,7 @@ package com.example.fitswap.data.repository.fake
 import com.example.fitswap.data.repository.SettingsRepository
 import com.example.fitswap.domain.model.AppSettings
 import com.example.fitswap.domain.model.AppTheme
+import com.example.fitswap.domain.model.ColorPalette
 import com.example.fitswap.domain.model.UiDensity
 import com.example.fitswap.domain.model.UnitSystem
 import javax.inject.Inject
@@ -33,6 +34,10 @@ class FakeSettingsRepository @Inject constructor() : SettingsRepository {
 
     override suspend fun updateRestTimerSeconds(restTimerSeconds: Int) {
         settings.update { it.copy(restTimerSeconds = restTimerSeconds) }
+    }
+
+    override suspend fun updateColorPalette(colorPalette: ColorPalette) {
+        settings.update { it.copy(colorPalette = colorPalette) }
     }
 
     override suspend fun replaceSettings(settings: AppSettings) {

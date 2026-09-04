@@ -3,23 +3,16 @@ package com.example.fitswap.ui.screens.measurements
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.fitswap.data.repository.BodyMeasurementRepository
-import com.example.fitswap.data.repository.BodyProfileRepository
 import com.example.fitswap.data.time.CurrentDateProvider
-import com.example.fitswap.domain.model.BiologicalSex
 import com.example.fitswap.domain.model.BodyMeasurementEntry
-import com.example.fitswap.domain.model.BodyProfile
 import dagger.hilt.android.lifecycle.HiltViewModel
 import javax.inject.Inject
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
-import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.update
-import kotlinx.coroutines.launch
 
 data class AddBodyMeasurementUiState(
-    val biologicalSex: BiologicalSex? = null,
-    val heightCm: String = "",
     val weightKg: String = "",
     val neckCm: String = "",
     val waistCm: String = "",
@@ -32,35 +25,16 @@ data class AddBodyMeasurementUiState(
     val canSave: Boolean get() = weightKg.toDoubleOrNull() != null
 }
 
+/** Sexo/altura ya no se piden acá — son datos de perfil que se configuran una sola vez en
+ * Configuración > Perfil (ver `SettingsViewModel`), no en cada medición. */
 @HiltViewModel
 class AddBodyMeasurementViewModel @Inject constructor(
     private val measurementRepository: BodyMeasurementRepository,
-    private val profileRepository: BodyProfileRepository,
     private val currentDateProvider: CurrentDateProvider,
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(AddBodyMeasurementUiState())
     val uiState: StateFlow<AddBodyMeasurementUiState> = _uiState.asStateFlow()
-
-    init {
-        viewModelScope.launch {
-            val profile = profileRepository.observeProfile().first()
-            _uiState.update {
-                it.copy(
-                    biologicalSex = profile.biologicalSex,
-                    heightCm = profile.heightCm?.let(::formatNumber).orEmpty(),
-                )
-            }
-        }
-    }
-
-    fun onSexSelected(sex: BiologicalSex) {
-        _uiState.update { it.copy(biologicalSex = sex) }
-    }
-
-    fun onHeightChanged(value: String) {
-        _uiState.update { it.copy(heightCm = value) }
-    }
 
     fun onWeightChanged(value: String) {
         _uiState.update { it.copy(weightKg = value) }
@@ -99,9 +73,6 @@ class AddBodyMeasurementViewModel @Inject constructor(
         val state = _uiState.value
         val weight = state.weightKg.toDoubleOrNull() ?: return false
 
-        profileRepository.updateProfile(
-            BodyProfile(biologicalSex = state.biologicalSex, heightCm = state.heightCm.toDoubleOrNull())
-        )
         measurementRepository.addMeasurement(
             BodyMeasurementEntry(
                 id = "measurement-${System.nanoTime()}",
@@ -119,6 +90,3 @@ class AddBodyMeasurementViewModel @Inject constructor(
         return true
     }
 }
-
-private fun formatNumber(value: Double): String =
-    if (value == value.toLong().toDouble()) value.toLong().toString() else value.toString()

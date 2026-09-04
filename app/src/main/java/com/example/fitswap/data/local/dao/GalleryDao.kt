@@ -14,4 +14,10 @@ interface GalleryDao {
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insert(item: GalleryItemEntity)
+
+    @Query("DELETE FROM gallery_items WHERE id = :id")
+    suspend fun delete(id: String)
+
+    @Query("DELETE FROM gallery_items WHERE exerciseId = :exerciseId")
+    suspend fun deleteAllForExercise(exerciseId: String)
 }

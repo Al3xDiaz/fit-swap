@@ -3,17 +3,26 @@ package com.example.fitswap.ui.screens.measurements
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
@@ -22,6 +31,7 @@ import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.example.fitswap.domain.logic.BmiCategory
 import com.example.fitswap.ui.common.AppTopBar
+import com.example.fitswap.ui.common.ConfirmDialog
 import com.example.fitswap.ui.common.MenuNavigationIcon
 import java.time.format.DateTimeFormatter
 
@@ -60,7 +70,7 @@ fun BodyMeasurementsScreen(
             val profileIncomplete = uiState.profile.biologicalSex == null || uiState.profile.heightCm == null
             if (profileIncomplete) {
                 Text(
-                    text = "Completá tu perfil (sexo biológico y altura) al agregar una medición para calcular IMC y % de grasa.",
+                    text = "Completá tu perfil (sexo biológico y altura) en Configuración para calcular IMC y % de grasa.",
                     style = MaterialTheme.typography.bodyMedium,
                     modifier = Modifier.testTag("profileIncompleteHint")
                 )
@@ -70,7 +80,9 @@ fun BodyMeasurementsScreen(
                 Text("Sin mediciones todavía", style = MaterialTheme.typography.bodyLarge)
             } else {
                 LazyColumn(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                    items(uiState.rows, key = { it.entry.id }) { row -> MeasurementRow(row) }
+                    items(uiState.rows, key = { it.entry.id }) { row ->
+                        MeasurementRow(row, onDelete = { viewModel.deleteMeasurement(row.entry.id) })
+                    }
                 }
             }
         }
@@ -78,22 +90,49 @@ fun BodyMeasurementsScreen(
 }
 
 @Composable
-private fun MeasurementRow(row: BodyMeasurementRow) {
-    Column(modifier = Modifier.testTag("measurementRow_${row.entry.id}")) {
-        Text(
-            text = "${row.entry.date.format(dateFormatter)} — ${formatNumber(row.entry.weightKg)} kg",
-            style = MaterialTheme.typography.titleMedium,
-        )
-        Text(
-            text = row.bmi?.let { bmi -> "IMC: ${formatNumber(bmi)} (${bmiCategoryLabel(row.bmiCategory!!)})" }
-                ?: "IMC: faltan datos (completá tu perfil)",
-            style = MaterialTheme.typography.bodyMedium,
-            modifier = Modifier.testTag("bmiLabel_${row.entry.id}")
-        )
-        Text(
-            text = row.bodyFatPercent?.let { "% de grasa: ${formatNumber(it)}%" } ?: "% de grasa: faltan datos",
-            style = MaterialTheme.typography.bodyMedium,
-            modifier = Modifier.testTag("bodyFatLabel_${row.entry.id}")
+private fun MeasurementRow(row: BodyMeasurementRow, onDelete: () -> Unit) {
+    var showDeleteConfirm by remember { mutableStateOf(false) }
+
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .testTag("measurementRow_${row.entry.id}"),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Column(modifier = Modifier.weight(1f)) {
+            Text(
+                text = "${row.entry.date.format(dateFormatter)} — ${formatNumber(row.entry.weightKg)} kg",
+                style = MaterialTheme.typography.titleMedium,
+            )
+            Text(
+                text = row.bmi?.let { bmi -> "IMC: ${formatNumber(bmi)} (${bmiCategoryLabel(row.bmiCategory!!)})" }
+                    ?: "IMC: faltan datos (completá tu perfil)",
+                style = MaterialTheme.typography.bodyMedium,
+                modifier = Modifier.testTag("bmiLabel_${row.entry.id}")
+            )
+            Text(
+                text = row.bodyFatPercent?.let { "% de grasa: ${formatNumber(it)}%" } ?: "% de grasa: faltan datos",
+                style = MaterialTheme.typography.bodyMedium,
+                modifier = Modifier.testTag("bodyFatLabel_${row.entry.id}")
+            )
+        }
+        IconButton(
+            onClick = { showDeleteConfirm = true },
+            modifier = Modifier.testTag("deleteMeasurementButton_${row.entry.id}")
+        ) {
+            Icon(Icons.Default.Delete, contentDescription = "Eliminar medición")
+        }
+    }
+
+    if (showDeleteConfirm) {
+        ConfirmDialog(
+            title = "¿Eliminar medición?",
+            message = "Se eliminará esta medición del ${row.entry.date.format(dateFormatter)}. No se puede deshacer.",
+            onConfirm = {
+                showDeleteConfirm = false
+                onDelete()
+            },
+            onCancel = { showDeleteConfirm = false }
         )
     }
 }

@@ -20,6 +20,10 @@ class FakeBodyMeasurementRepository @Inject constructor() : BodyMeasurementRepos
     override suspend fun addMeasurement(entry: BodyMeasurementEntry) {
         measurements.update { current -> (current + entry).sortedByDescending { it.date } }
     }
+
+    override suspend fun deleteMeasurement(id: String) {
+        measurements.update { current -> current.filterNot { it.id == id } }
+    }
 }
 
 /**

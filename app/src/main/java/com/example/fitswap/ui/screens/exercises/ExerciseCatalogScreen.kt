@@ -8,7 +8,11 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Add
+import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.HorizontalDivider
+import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
@@ -28,6 +32,7 @@ import com.example.fitswap.ui.common.AppTopBar
 fun ExerciseCatalogScreen(
     navigationIcon: @Composable () -> Unit,
     onExerciseClick: (exerciseId: String) -> Unit,
+    onAddExercise: (() -> Unit)? = null,
     viewModel: ExerciseCatalogViewModel = hiltViewModel(),
 ) {
     val query by viewModel.query.collectAsStateWithLifecycle()
@@ -36,6 +41,13 @@ fun ExerciseCatalogScreen(
     Scaffold(
         topBar = {
             AppTopBar(title = "Ejercicios", navigationIcon = navigationIcon)
+        },
+        floatingActionButton = {
+            if (onAddExercise != null) {
+                FloatingActionButton(onClick = onAddExercise, modifier = Modifier.testTag("addExerciseButton")) {
+                    Icon(Icons.Filled.Add, contentDescription = "Agregar ejercicio")
+                }
+            }
         }
     ) { innerPadding ->
         Column(

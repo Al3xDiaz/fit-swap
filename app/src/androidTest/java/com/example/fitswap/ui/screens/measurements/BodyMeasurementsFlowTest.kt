@@ -35,13 +35,18 @@ class BodyMeasurementsFlowTest {
 
     @Test
     fun agregarUnaMedicionCompletaAparecEnElHistorialConSuImcYPorcentajeDeGrasa() {
+        // Sexo y altura se configuran una sola vez en Configuración > Perfil, no en cada medición.
         composeTestRule.onNodeWithContentDescription("Abrir menú").performClick()
-        composeTestRule.onNodeWithTag("drawerItem_measurements").performClick()
-        composeTestRule.onNodeWithTag("profileIncompleteHint").assertIsDisplayed()
-
-        composeTestRule.onNodeWithTag("addMeasurementButton").performClick()
+        composeTestRule.onNodeWithTag("drawerItem_settings").performClick()
         composeTestRule.onNodeWithTag("sexOption_MALE").performClick()
         composeTestRule.onNodeWithTag("heightField").performTextInput("180")
+        closeSoftKeyboard()
+
+        composeTestRule.onNodeWithContentDescription("Abrir menú").performClick()
+        composeTestRule.onNodeWithTag("drawerItem_measurements").performClick()
+        composeTestRule.onAllNodesWithTag("profileIncompleteHint").assertCountEquals(0)
+
+        composeTestRule.onNodeWithTag("addMeasurementButton").performClick()
         composeTestRule.onNodeWithTag("weightField").performTextInput("81")
         composeTestRule.onNodeWithTag("neckField").performTextInput("38")
         composeTestRule.onNodeWithTag("waistField").performTextInput("85")
@@ -56,6 +61,5 @@ class BodyMeasurementsFlowTest {
 
         // 81 kg / 1.80 m^2 = 25.0 -> categoría "sobrepeso" (el corte OMS de "normal" es < 25.0).
         composeTestRule.onNodeWithText("IMC: 25.0 (sobrepeso)").assertIsDisplayed()
-        composeTestRule.onAllNodesWithTag("profileIncompleteHint").assertCountEquals(0)
     }
 }

@@ -7,6 +7,7 @@ import com.example.fitswap.data.repository.fake.FakeRoutineRepository
 import com.example.fitswap.data.repository.fake.FakeSettingsRepository
 import com.example.fitswap.domain.model.AppSettings
 import com.example.fitswap.domain.model.AppTheme
+import java.time.LocalDate
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
@@ -33,7 +34,7 @@ class ToolsViewModelTest {
         val notesRepository = FakeNotesRepository()
         val settingsRepository = FakeSettingsRepository()
         settingsRepository.updateTheme(AppTheme.DARK)
-        notesRepository.addNote("press-de-pecho", "nota de prueba")
+        notesRepository.setNote("press-de-pecho", LocalDate.of(2026, 9, 1), "nota de prueba")
 
         val viewModel = viewModel(routineRepository, historyRepository, notesRepository, settingsRepository)
 

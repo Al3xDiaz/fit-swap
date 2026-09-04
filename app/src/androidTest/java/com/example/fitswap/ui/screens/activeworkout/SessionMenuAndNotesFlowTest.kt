@@ -36,24 +36,31 @@ class SessionMenuAndNotesFlowTest {
         composeTestRule.waitUntilTagExists("registerSetButton")
         composeTestRule.onNodeWithTag("appTopBarTitle").assertTextEquals("Elevaciones laterales")
 
-        // Menú de sesión: saltar a otro ejercicio del día sin perder el progreso.
-        composeTestRule.onNodeWithTag("sessionMenuButton").performClick()
+        // Menú de sesión: ahora reemplaza al drawer principal mientras hay una rutina activa —
+        // se abre con el mismo ícono/posición que el menú de la app (ver AppNavHost).
+        composeTestRule.onNodeWithContentDescription("Abrir menú").performClick()
         composeTestRule.waitUntilTagExists("sessionMenuItem_default-martes-press-militar-maquina")
         composeTestRule.onNodeWithTag("sessionMenuItem_default-martes-press-militar-maquina").performClick()
         composeTestRule.waitUntilTagExists("registerSetButton")
         composeTestRule.onNodeWithTag("appTopBarTitle").assertTextEquals("Press militar en máquina")
 
-        // Notas: agregar una nota sin perder el contexto del entrenamiento.
+        // Notas: escribir la nota de hoy sin perder el contexto del entrenamiento — una sola
+        // nota por día, se guarda al cerrar.
         composeTestRule.onNodeWithTag("notesButton").performClick()
         composeTestRule.waitUntilTagExists("noteInputField")
         composeTestRule.onNodeWithTag("noteInputField").performTextInput("Ajustar asiento")
-        composeTestRule.onNodeWithTag("addNoteButton").performClick()
-        composeTestRule.onNodeWithText("Ajustar asiento").assertTextEquals("Ajustar asiento")
+        composeTestRule.onNodeWithTag("saveNoteButton").performClick()
+        composeTestRule.onNodeWithTag("appTopBarTitle").assertTextEquals("Press militar en máquina")
+
+        // Reabrir Notas confirma que quedó guardada.
+        composeTestRule.onNodeWithTag("notesButton").performClick()
+        composeTestRule.waitUntilTagExists("noteInputField")
+        composeTestRule.onNodeWithTag("noteInputField").assertTextEquals("Ajustar asiento")
         composeTestRule.onNodeWithContentDescription("Cerrar").performClick()
         composeTestRule.onNodeWithTag("appTopBarTitle").assertTextEquals("Press militar en máquina")
 
         // Terminar rutina (con confirmación) vuelve a Rutinas.
-        composeTestRule.onNodeWithTag("sessionMenuButton").performClick()
+        composeTestRule.onNodeWithContentDescription("Abrir menú").performClick()
         composeTestRule.waitUntilTagExists("finishRoutineItem")
         composeTestRule.onNodeWithTag("finishRoutineItem").performClick()
         composeTestRule.onNodeWithText("Confirmar").performClick()
@@ -64,9 +71,9 @@ class SessionMenuAndNotesFlowTest {
     fun cancelarTerminarRutinaMantieneElMenuDeSesion() {
         composeTestRule.onNodeWithTag("routineListItem_default").performClick()
         composeTestRule.onNodeWithTag("startWorkoutButton_default-martes").performClick()
-        composeTestRule.waitUntilTagExists("sessionMenuButton")
+        composeTestRule.waitUntilTagExists("registerSetButton")
 
-        composeTestRule.onNodeWithTag("sessionMenuButton").performClick()
+        composeTestRule.onNodeWithContentDescription("Abrir menú").performClick()
         composeTestRule.waitUntilTagExists("finishRoutineItem")
         composeTestRule.onNodeWithTag("finishRoutineItem").performClick()
         composeTestRule.onNodeWithText("Cancelar").performClick()

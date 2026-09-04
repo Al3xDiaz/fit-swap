@@ -17,10 +17,14 @@ import androidx.compose.material.icons.filled.KeyboardArrowDown
 import androidx.compose.material.icons.filled.KeyboardArrowUp
 import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.DropdownMenuItem
+import androidx.compose.material3.ExposedDropdownMenuBox
+import androidx.compose.material3.ExposedDropdownMenuDefaults
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.ExposedDropdownMenuAnchorType
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
@@ -41,9 +45,12 @@ import com.example.fitswap.data.repository.MoveDirection
 import com.example.fitswap.domain.model.Routine
 import com.example.fitswap.domain.model.RoutineDay
 import com.example.fitswap.domain.model.RoutineExercise
+import com.example.fitswap.domain.model.WEEK_DAYS_ES
+import com.example.fitswap.domain.model.toSpanishLabel
 import com.example.fitswap.ui.common.AppTopBar
 import com.example.fitswap.ui.common.BackNavigationIcon
 import com.example.fitswap.ui.common.ConfirmDialog
+import java.time.DayOfWeek
 
 @Composable
 fun EditRoutineScreen(
@@ -149,7 +156,7 @@ private fun RoutineEditorBody(
     routine: Routine,
     onRenameDay: (dayId: String, newName: String) -> Unit,
     onRemoveDay: (dayId: String) -> Unit,
-    onAddDay: (name: String) -> Unit,
+    onAddDay: (name: String, dayOfWeek: DayOfWeek?) -> Unit,
     onAddExerciseClick: (dayId: String) -> Unit,
     onRemoveExercise: (dayId: String, routineExerciseId: String) -> Unit,
     onMoveExercise: (dayId: String, routineExerciseId: String, direction: MoveDirection) -> Unit,
@@ -303,24 +310,56 @@ private fun ExerciseEditorRow(
     }
 }
 
+@OptIn(androidx.compose.material3.ExperimentalMaterial3Api::class)
 @Composable
-private fun AddDaySection(onAddDay: (String) -> Unit) {
-    var draftName by remember { mutableStateOf("") }
+private fun AddDaySection(onAddDay: (name: String, dayOfWeek: DayOfWeek?) -> Unit) {
+    var selectedDay by remember { mutableStateOf<DayOfWeek?>(null) }
+    var expanded by remember { mutableStateOf(false) }
+
     Row(
         modifier = Modifier.fillMaxWidth(),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(8.dp)
     ) {
-        OutlinedTextField(
-            value = draftName,
-            onValueChange = { draftName = it },
-            label = { Text("Nombre del día") },
-            modifier = Modifier
-                .weight(1f)
-                .testTag("newDayNameField")
-        )
+        ExposedDropdownMenuBox(
+            expanded = expanded,
+            onExpandedChange = { expanded = it },
+            modifier = Modifier.weight(1f)
+        ) {
+            OutlinedTextField(
+                value = selectedDay?.toSpanishLabel().orEmpty(),
+                onValueChange = {},
+                readOnly = true,
+                label = { Text("Día de la semana") },
+                trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded) },
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .menuAnchor(ExposedDropdownMenuAnchorType.PrimaryNotEditable, enabled = true)
+                    .testTag("newDayOfWeekField")
+            )
+            ExposedDropdownMenu(
+                expanded = expanded,
+                onDismissRequest = { expanded = false }
+            ) {
+                WEEK_DAYS_ES.forEach { day ->
+                    DropdownMenuItem(
+                        text = { Text(day.toSpanishLabel()) },
+                        onClick = {
+                            selectedDay = day
+                            expanded = false
+                        },
+                        modifier = Modifier.testTag("dayOfWeekOption_${day.name}")
+                    )
+                }
+            }
+        }
         Button(
-            onClick = { onAddDay(draftName); draftName = "" },
+            onClick = {
+                val day = selectedDay ?: return@Button
+                onAddDay(day.toSpanishLabel(), day)
+                selectedDay = null
+            },
+            enabled = selectedDay != null,
             modifier = Modifier.testTag("addDayButton")
         ) {
             Text("+ Agregar día")

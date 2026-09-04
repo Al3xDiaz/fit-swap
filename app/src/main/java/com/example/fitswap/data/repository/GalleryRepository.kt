@@ -6,4 +6,5 @@ import kotlinx.coroutines.flow.Flow
 interface GalleryRepository {
     fun observeGallery(exerciseId: String): Flow<List<GalleryItem>>
     suspend fun addMedia(exerciseId: String, uri: String, isVideo: Boolean)
+    suspend fun deleteMedia(id: String)
 }

@@ -7,4 +7,5 @@ interface BodyMeasurementRepository {
     /** Más reciente primero. */
     fun observeMeasurements(): Flow<List<BodyMeasurementEntry>>
     suspend fun addMeasurement(entry: BodyMeasurementEntry)
+    suspend fun deleteMeasurement(id: String)
 }

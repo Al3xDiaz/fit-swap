@@ -31,6 +31,9 @@ interface HistoryDao {
     @Query("DELETE FROM history_points")
     suspend fun clearAll()
 
+    @Query("DELETE FROM history_points WHERE exerciseId = :exerciseId")
+    suspend fun deleteAllForExercise(exerciseId: String)
+
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertAll(points: List<HistoryPointEntity>)
 

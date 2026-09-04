@@ -43,8 +43,17 @@ interface RoutineDao {
     @Query("DELETE FROM routines WHERE id = :routineId AND isDefault = 0")
     suspend fun deleteRoutine(routineId: String)
 
+    @Query("UPDATE routines SET isDefault = 0")
+    suspend fun clearDefaultRoutine()
+
+    @Query("UPDATE routines SET isDefault = 1 WHERE id = :routineId")
+    suspend fun markDefaultRoutine(routineId: String)
+
     @Query("UPDATE routine_days SET name = :newName WHERE id = :dayId")
     suspend fun renameDay(dayId: String, newName: String)
+
+    @Query("UPDATE routine_days SET dayOfWeek = :dayOfWeek WHERE id = :dayId")
+    suspend fun setDayOfWeek(dayId: String, dayOfWeek: String)
 
     @Query("DELETE FROM routine_days WHERE id = :dayId")
     suspend fun removeDay(dayId: String)

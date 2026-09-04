@@ -6,7 +6,7 @@ import androidx.lifecycle.viewModelScope
 import com.example.fitswap.data.repository.NotesRepository
 import com.example.fitswap.data.repository.RoutineRepository
 import com.example.fitswap.data.repository.WorkoutSessionRepository
-import com.example.fitswap.domain.model.Note
+import com.example.fitswap.data.time.CurrentDateProvider
 import dagger.hilt.android.lifecycle.HiltViewModel
 import javax.inject.Inject
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -19,15 +19,20 @@ import kotlinx.coroutines.launch
 data class NotesUiState(
     val isLoading: Boolean = true,
     val exerciseName: String = "",
-    val notes: List<Note> = emptyList(),
+    /** Nota del día de hoy para este ejercicio — una sola, no una lista (ver [Note]). */
+    val noteText: String = "",
 )
 
+/** Edita la nota de **hoy** para el ejercicio activo — escribirla de nuevo el mismo día
+ * reemplaza lo anterior, no se acumula una lista (ver `NotesRepository.setNote`). Esa nota es la
+ * que después se muestra junto a la sesión de hoy en el historial del ejercicio. */
 @HiltViewModel
 class NotesViewModel @Inject constructor(
     savedStateHandle: SavedStateHandle,
     private val routineRepository: RoutineRepository,
     private val notesRepository: NotesRepository,
     private val workoutSessionRepository: WorkoutSessionRepository,
+    private val currentDateProvider: CurrentDateProvider,
 ) : ViewModel() {
 
     private val routineId: String = checkNotNull(savedStateHandle["routineId"])
@@ -49,15 +54,20 @@ class NotesViewModel @Inject constructor(
             val exercise = substitution ?: routineExercise.exercise
             exerciseId = exercise.id
 
-            notesRepository.observeNotes(exercise.id).collect { notes ->
-                _uiState.update { it.copy(isLoading = false, exerciseName = exercise.name, notes = notes) }
+            notesRepository.observeNote(exercise.id, currentDateProvider.today()).collect { note ->
+                _uiState.update { it.copy(isLoading = false, exerciseName = exercise.name, noteText = note?.text.orEmpty()) }
             }
         }
     }
 
-    fun addNote(text: String) {
+    fun onNoteTextChanged(text: String) {
+        _uiState.update { it.copy(noteText = text) }
+    }
+
+    fun save() {
         val id = exerciseId ?: return
+        val text = _uiState.value.noteText
         if (text.isBlank()) return
-        viewModelScope.launch { notesRepository.addNote(id, text) }
+        viewModelScope.launch { notesRepository.setNote(id, currentDateProvider.today(), text) }
     }
 }

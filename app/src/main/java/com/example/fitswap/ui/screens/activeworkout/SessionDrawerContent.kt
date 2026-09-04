@@ -1,8 +1,6 @@
 package com.example.fitswap.ui.screens.activeworkout
 
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
@@ -10,52 +8,56 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Scaffold
+import androidx.compose.material3.ModalDrawerSheet
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import com.example.fitswap.ui.common.AppTopBar
-import com.example.fitswap.ui.common.CloseNavigationIcon
+import androidx.navigation.NavBackStackEntry
 import com.example.fitswap.ui.common.ConfirmDialog
 
+/**
+ * Contenido del drawer principal (☰, misma posición/click/gesto que en el resto de la app)
+ * mientras hay una rutina activa — reemplaza el menú de navegación de la app (Rutinas,
+ * Ejercicios, Configuración, etc.) para que no se pueda salir de la rutina en curso por swipe
+ * o click sin querer; en su lugar muestra el estado de los ejercicios del día y la opción de
+ * terminar la rutina.
+ *
+ * Reusa [SessionMenuViewModel] escaneado a la misma [NavBackStackEntry] de `ActiveExerciseScreen`
+ * (mismo `ViewModelStore`, mismos argumentos de ruta) — así el drawer y la pantalla activa
+ * comparten estado sin duplicar lógica de carga.
+ */
 @Composable
-fun SessionMenuScreen(
-    onClose: () -> Unit,
+fun SessionDrawerContent(
+    backStackEntry: NavBackStackEntry,
     onSelectExercise: (routineExerciseId: String) -> Unit,
     onFinishRoutine: () -> Unit,
-    viewModel: SessionMenuViewModel = hiltViewModel(),
+    onClose: () -> Unit,
 ) {
+    val viewModel: SessionMenuViewModel = hiltViewModel(viewModelStoreOwner = backStackEntry)
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     var showFinishConfirm by remember { mutableStateOf(false) }
 
-    Scaffold(
-        topBar = {
-            AppTopBar(
-                title = uiState.dayName,
-                navigationIcon = { CloseNavigationIcon(onClose = onClose) }
-            )
-        }
-    ) { innerPadding ->
+    ModalDrawerSheet {
+        Text(
+            text = uiState.dayName,
+            style = MaterialTheme.typography.titleLarge,
+            modifier = Modifier.padding(16.dp)
+        )
+        HorizontalDivider()
         if (uiState.isLoading) {
-            Box(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .padding(innerPadding),
-                contentAlignment = Alignment.Center
-            ) { CircularProgressIndicator() }
+            CircularProgressIndicator(modifier = Modifier.padding(16.dp))
         } else {
-            LazyColumn(modifier = Modifier.padding(innerPadding)) {
+            LazyColumn {
                 items(uiState.items, key = { it.routineExerciseId }) { item ->
-                    SessionMenuRow(
+                    SessionDrawerRow(
                         item = item,
                         onClick = {
                             if (item.status == SessionExerciseStatus.ACTIVE) {
@@ -65,11 +67,11 @@ fun SessionMenuScreen(
                             }
                         }
                     )
-                    HorizontalDivider()
                 }
                 item {
+                    HorizontalDivider()
                     Text(
-                        text = "Terminar rutina?",
+                        text = "Terminar rutina",
                         style = MaterialTheme.typography.bodyLarge,
                         modifier = Modifier
                             .fillMaxWidth()
@@ -97,7 +99,7 @@ fun SessionMenuScreen(
 }
 
 @Composable
-private fun SessionMenuRow(item: SessionMenuItem, onClick: () -> Unit) {
+private fun SessionDrawerRow(item: SessionMenuItem, onClick: () -> Unit) {
     val marker = when (item.status) {
         SessionExerciseStatus.DONE -> "✓"
         SessionExerciseStatus.ACTIVE -> "▶"

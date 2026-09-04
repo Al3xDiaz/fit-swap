@@ -13,28 +13,65 @@ import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import com.example.fitswap.ui.common.ComingSoonScreen
 import com.example.fitswap.ui.common.MenuNavigationIcon
+import com.example.fitswap.ui.screens.activeworkout.SessionDrawerContent
 import kotlinx.coroutines.launch
+
+/** Rutas del flujo de rutina activa — mientras se está en alguna de estas, el drawer principal
+ * (Rutinas/Ejercicios/Config/etc.) queda deshabilitado para no poder "fugarse" de la rutina en
+ * curso por swipe o click sin querer (ver [SessionDrawerContent]). */
+private val ROUTINE_ACTIVE_FLOW_ROUTES = setOf(
+    ACTIVE_EXERCISE_ROUTE_PATTERN,
+    SWAP_EXERCISE_ROUTE_PATTERN,
+    NOTES_ROUTE_PATTERN,
+)
 
 @Composable
 fun AppNavHost(navController: NavHostController = rememberNavController()) {
     val drawerState = rememberDrawerState(DrawerValue.Closed)
     val scope = rememberCoroutineScope()
     val currentRoute by navController.currentBackStackEntryAsState()
+    val currentDestinationRoute = currentRoute?.destination?.route
+    val isActiveExerciseRoute = currentDestinationRoute == ACTIVE_EXERCISE_ROUTE_PATTERN
+    val isRoutineActiveFlow = currentDestinationRoute in ROUTINE_ACTIVE_FLOW_ROUTES
 
     ModalNavigationDrawer(
         drawerState = drawerState,
+        gesturesEnabled = !isRoutineActiveFlow,
         drawerContent = {
-            DrawerContent(
-                currentRoute = currentRoute?.destination?.route,
-                onDestinationClick = { destination ->
-                    scope.launch { drawerState.close() }
-                    navController.navigate(destination.route) {
-                        popUpTo(navController.graph.startDestinationId) { saveState = true }
-                        launchSingleTop = true
-                        restoreState = true
+            val activeExerciseEntry = currentRoute
+            if (isActiveExerciseRoute && activeExerciseEntry != null) {
+                SessionDrawerContent(
+                    backStackEntry = activeExerciseEntry,
+                    onSelectExercise = { newExerciseId ->
+                        scope.launch { drawerState.close() }
+                        val routineId = activeExerciseEntry.arguments?.getString("routineId").orEmpty()
+                        val dayId = activeExerciseEntry.arguments?.getString("dayId").orEmpty()
+                        navController.navigate(activeExerciseRoute(routineId, dayId, newExerciseId)) {
+                            popUpTo(ACTIVE_EXERCISE_ROUTE_PATTERN) { inclusive = true }
+                        }
+                    },
+                    onFinishRoutine = {
+                        scope.launch { drawerState.close() }
+                        navController.navigate(Destination.Routines.route) {
+                            popUpTo(Destination.Routines.route) { inclusive = true }
+                            launchSingleTop = true
+                        }
+                    },
+                    onClose = { scope.launch { drawerState.close() } },
+                )
+            } else {
+                DrawerContent(
+                    currentRoute = currentDestinationRoute,
+                    onDestinationClick = { destination ->
+                        scope.launch { drawerState.close() }
+                        navController.navigate(destination.route) {
+                            popUpTo(navController.graph.startDestinationId) { saveState = true }
+                            launchSingleTop = true
+                            restoreState = true
+                        }
                     }
-                }
-            )
+                )
+            }
         }
     ) {
         NavHost(navController = navController, startDestination = Destination.Routines.route) {
@@ -44,15 +81,18 @@ fun AppNavHost(navController: NavHostController = rememberNavController()) {
             )
             routineDetailScreen(navController = navController)
             editRoutineScreen(navController = navController)
-            activeExerciseScreen(navController = navController)
+            activeExerciseScreen(
+                navController = navController,
+                onOpenDrawer = { scope.launch { drawerState.open() } }
+            )
             swapExerciseScreen(navController = navController)
             notesScreen(navController = navController)
-            sessionMenuScreen(navController = navController)
             exerciseCatalogScreen(
                 navController = navController,
                 onMenuClick = { scope.launch { drawerState.open() } }
             )
             exerciseHistoryScreen(navController = navController)
+            exerciseFormScreen(navController = navController)
             exercisePickerScreen(navController = navController)
             summaryScreen(
                 navController = navController,

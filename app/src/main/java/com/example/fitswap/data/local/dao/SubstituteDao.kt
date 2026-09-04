@@ -26,4 +26,7 @@ interface SubstituteDao {
         """
     )
     suspend fun exercisesInGroups(groupIds: List<String>, excludingExerciseId: String): List<ExerciseEntity>
+
+    @Query("DELETE FROM substitute_links WHERE exerciseId = :exerciseId")
+    suspend fun deleteAllForExercise(exerciseId: String)
 }

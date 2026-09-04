@@ -9,7 +9,9 @@ import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onRoot
 import androidx.compose.ui.test.performClick
+import androidx.compose.ui.test.performScrollTo
 import com.example.fitswap.MainActivity
+import com.example.fitswap.waitUntilTagExists
 import dagger.hilt.android.testing.HiltAndroidRule
 import dagger.hilt.android.testing.HiltAndroidTest
 import org.junit.Assert.assertTrue
@@ -36,11 +38,12 @@ class SettingsFlowTest {
         composeTestRule.onNodeWithContentDescription("Abrir menú").performClick()
         composeTestRule.onNodeWithTag("drawerItem_settings").performClick()
 
-        composeTestRule.onNodeWithTag("themeOption_LIGHT").performClick()
+        // Configuraciones ahora scrollea (Perfil + Paleta de colores se agregaron arriba de Tema).
+        composeTestRule.onNodeWithTag("themeOption_LIGHT").performScrollTo().performClick()
         composeTestRule.waitForIdle()
         val lightLuminance = composeTestRule.onRoot().captureToImage().averageLuminance()
 
-        composeTestRule.onNodeWithTag("themeOption_DARK").performClick()
+        composeTestRule.onNodeWithTag("themeOption_DARK").performScrollTo().performClick()
         composeTestRule.waitForIdle()
         val darkLuminance = composeTestRule.onRoot().captureToImage().averageLuminance()
 
@@ -54,7 +57,7 @@ class SettingsFlowTest {
     fun elegirUnTimerDeDescansoEnConfiguracionesSeUsaAlRegistrarUnaSerie() {
         composeTestRule.onNodeWithContentDescription("Abrir menú").performClick()
         composeTestRule.onNodeWithTag("drawerItem_settings").performClick()
-        composeTestRule.onNodeWithTag("restTimerOption_30").performClick()
+        composeTestRule.onNodeWithTag("restTimerOption_30").performScrollTo().performClick()
 
         composeTestRule.onNodeWithContentDescription("Abrir menú").performClick()
         composeTestRule.onNodeWithTag("drawerItem_routines").performClick()
@@ -62,6 +65,7 @@ class SettingsFlowTest {
         composeTestRule.onNodeWithTag("startWorkoutButton_default-martes").performClick()
 
         composeTestRule.onNodeWithTag("registerSetButton").performClick()
+        composeTestRule.waitUntilTagExists("restTimerLabel")
         composeTestRule.onNodeWithTag("restTimerLabel").assertTextEquals("⏱ Descanso: 00:30")
     }
 }

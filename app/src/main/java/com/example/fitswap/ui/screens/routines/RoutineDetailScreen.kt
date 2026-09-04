@@ -37,9 +37,12 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.example.fitswap.domain.model.RoutineDay
+import com.example.fitswap.domain.model.WEEK_DAYS_ES
+import com.example.fitswap.domain.model.toSpanishLabel
 import com.example.fitswap.ui.common.AppTopBar
 import com.example.fitswap.ui.common.BackNavigationIcon
 import com.example.fitswap.ui.common.ConfirmDialog
+import java.time.DayOfWeek
 
 @Composable
 fun RoutineDetailScreen(
@@ -50,6 +53,7 @@ fun RoutineDetailScreen(
 ) {
     val routine by viewModel.routine.collectAsStateWithLifecycle()
     val selectedDayIndex by viewModel.selectedDayIndex.collectAsStateWithLifecycle()
+    val selectedWeekDay by viewModel.selectedWeekDay.collectAsStateWithLifecycle()
     var showDeleteConfirm by remember { mutableStateOf(false) }
     var showDayPicker by remember { mutableStateOf(false) }
     val currentRoutine = routine
@@ -74,6 +78,7 @@ fun RoutineDetailScreen(
             return@Scaffold
         }
 
+        val hasWeekDays = currentRoutine.days.any { it.dayOfWeek != null }
         val currentDay = currentRoutine.days.getOrNull(selectedDayIndex)
 
         Column(
@@ -84,7 +89,16 @@ fun RoutineDetailScreen(
                 .padding(16.dp),
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
-            if (currentDay != null) {
+            if (hasWeekDays) {
+                WeekRoutineDaySection(
+                    weekDay = selectedWeekDay,
+                    day = currentRoutine.days.firstOrNull { it.dayOfWeek == selectedWeekDay },
+                    isToday = selectedWeekDay == viewModel.todayDayOfWeek,
+                    onChangeDayClick = { showDayPicker = true },
+                    onEditRoutine = onEditRoutine,
+                    onStartWorkout = onStartWorkout,
+                )
+            } else if (currentDay != null) {
                 RoutineDaySection(
                     day = currentDay,
                     hasMultipleDays = currentRoutine.days.size > 1,
@@ -106,14 +120,24 @@ fun RoutineDetailScreen(
         }
 
         if (showDayPicker) {
-            DayPickerDialog(
-                days = currentRoutine.days,
-                onDaySelected = { index ->
-                    viewModel.selectDay(index)
-                    showDayPicker = false
-                },
-                onDismiss = { showDayPicker = false },
-            )
+            if (hasWeekDays) {
+                WeekDayPickerDialog(
+                    onDaySelected = { day ->
+                        viewModel.selectWeekDay(day)
+                        showDayPicker = false
+                    },
+                    onDismiss = { showDayPicker = false },
+                )
+            } else {
+                DayPickerDialog(
+                    days = currentRoutine.days,
+                    onDaySelected = { index ->
+                        viewModel.selectDay(index)
+                        showDayPicker = false
+                    },
+                    onDismiss = { showDayPicker = false },
+                )
+            }
         }
     }
 
@@ -191,6 +215,98 @@ private fun RoutineDaySection(
             }
         }
     }
+}
+
+/** Vista de semana completa (lunes a domingo) para rutinas con días atados a un `dayOfWeek` —
+ * a diferencia de [RoutineDaySection], siempre muestra los 7 días aunque la rutina no tenga un
+ * [RoutineDay] cargado para alguno de ellos (se ve como día vacío, no se oculta). */
+@Composable
+private fun WeekRoutineDaySection(
+    weekDay: DayOfWeek,
+    day: RoutineDay?,
+    isToday: Boolean,
+    onChangeDayClick: () -> Unit,
+    onEditRoutine: () -> Unit,
+    onStartWorkout: (dayId: String, exerciseId: String) -> Unit,
+) {
+    Column {
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Row(
+                modifier = Modifier
+                    .weight(1f)
+                    .clickable(onClick = onChangeDayClick)
+                    .testTag("changeDayButton"),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text(
+                    text = weekDay.toSpanishLabel(),
+                    style = MaterialTheme.typography.titleLarge,
+                    modifier = Modifier.testTag("currentDayLabel")
+                )
+                Icon(Icons.Default.ArrowDropDown, contentDescription = "Cambiar día")
+            }
+            IconButton(onClick = onEditRoutine) {
+                Icon(Icons.Default.Edit, contentDescription = "Editar rutina")
+            }
+        }
+        if (day == null || day.exercises.isEmpty()) {
+            Text(
+                text = if (isToday) "Hoy no te toca gym" else "Sin ejercicios este día",
+                style = MaterialTheme.typography.bodyLarge,
+                modifier = Modifier
+                    .padding(vertical = 8.dp)
+                    .testTag("emptyDayMessage")
+            )
+        } else {
+            day.exercises.forEachIndexed { index, routineExercise ->
+                Text(
+                    text = "${index + 1}. ${routineExercise.exercise.name}",
+                    style = MaterialTheme.typography.bodyLarge,
+                    modifier = Modifier.padding(vertical = 4.dp)
+                )
+            }
+            Button(
+                onClick = { onStartWorkout(day.id, day.exercises.first().id) },
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(top = 8.dp)
+                    .testTag("startWorkoutButton_${day.id}")
+            ) {
+                Text("Empezar entrenamiento")
+            }
+        }
+    }
+}
+
+@Composable
+private fun WeekDayPickerDialog(
+    onDaySelected: (DayOfWeek) -> Unit,
+    onDismiss: () -> Unit,
+) {
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text("Elegir día") },
+        text = {
+            LazyColumn {
+                itemsIndexed(WEEK_DAYS_ES) { _, day ->
+                    Text(
+                        text = day.toSpanishLabel(),
+                        style = MaterialTheme.typography.bodyLarge,
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clickable { onDaySelected(day) }
+                            .testTag("weekDayPickerItem_${day.name}")
+                            .padding(vertical = 12.dp)
+                    )
+                }
+            }
+        },
+        confirmButton = {},
+        dismissButton = { TextButton(onClick = onDismiss) { Text("Cancelar") } }
+    )
 }
 
 @Composable

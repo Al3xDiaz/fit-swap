@@ -13,6 +13,7 @@ import com.example.fitswap.ui.theme.ThemeViewModel
 @Composable
 fun AppRoot(themeViewModel: ThemeViewModel = hiltViewModel()) {
     val appTheme by themeViewModel.appTheme.collectAsStateWithLifecycle()
+    val colorPalette by themeViewModel.colorPalette.collectAsStateWithLifecycle()
     val systemDarkTheme = isSystemInDarkTheme()
     val darkTheme = when (appTheme) {
         AppTheme.LIGHT -> false
@@ -20,7 +21,7 @@ fun AppRoot(themeViewModel: ThemeViewModel = hiltViewModel()) {
         AppTheme.SYSTEM -> systemDarkTheme
     }
 
-    FitSwapTheme(darkTheme = darkTheme) {
+    FitSwapTheme(darkTheme = darkTheme, palette = colorPalette) {
         AppNavHost()
     }
 }

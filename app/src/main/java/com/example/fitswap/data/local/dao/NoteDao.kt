@@ -13,6 +13,9 @@ interface NoteDao {
     @Query("SELECT * FROM notes WHERE exerciseId = :exerciseId")
     fun observeNotes(exerciseId: String): Flow<List<NoteEntity>>
 
+    @Query("SELECT * FROM notes WHERE id = :id")
+    fun observeNoteById(id: String): Flow<NoteEntity?>
+
     @Query("SELECT * FROM notes")
     fun observeAllNotes(): Flow<List<NoteEntity>>
 
@@ -21,6 +24,9 @@ interface NoteDao {
 
     @Query("DELETE FROM notes")
     suspend fun clearAll()
+
+    @Query("DELETE FROM notes WHERE exerciseId = :exerciseId")
+    suspend fun deleteAllForExercise(exerciseId: String)
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertAll(notes: List<NoteEntity>)

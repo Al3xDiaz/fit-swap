@@ -8,7 +8,10 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.RadioButton
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
@@ -21,6 +24,8 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.example.fitswap.domain.model.AppTheme
+import com.example.fitswap.domain.model.BiologicalSex
+import com.example.fitswap.domain.model.ColorPalette
 import com.example.fitswap.domain.model.UiDensity
 import com.example.fitswap.domain.model.UnitSystem
 import com.example.fitswap.ui.common.AppTopBar
@@ -32,6 +37,7 @@ fun SettingsScreen(
     viewModel: SettingsViewModel = hiltViewModel(),
 ) {
     val settings by viewModel.settings.collectAsStateWithLifecycle()
+    val profile by viewModel.profile.collectAsStateWithLifecycle()
 
     Scaffold(
         topBar = {
@@ -42,9 +48,32 @@ fun SettingsScreen(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(innerPadding)
-                .padding(16.dp),
+                .padding(16.dp)
+                .verticalScroll(rememberScrollState()),
             verticalArrangement = Arrangement.spacedBy(24.dp)
         ) {
+            SettingsSection(title = "Perfil") {
+                Row(horizontalArrangement = Arrangement.spacedBy(24.dp)) {
+                    SexOption(
+                        label = "Masculino",
+                        selected = profile.biologicalSex == BiologicalSex.MALE,
+                        onClick = { viewModel.onSexSelected(BiologicalSex.MALE) },
+                        testTag = "sexOption_MALE",
+                    )
+                    SexOption(
+                        label = "Femenino",
+                        selected = profile.biologicalSex == BiologicalSex.FEMALE,
+                        onClick = { viewModel.onSexSelected(BiologicalSex.FEMALE) },
+                        testTag = "sexOption_FEMALE",
+                    )
+                }
+                OutlinedTextField(
+                    value = profile.heightCm?.let(::formatProfileNumber).orEmpty(),
+                    onValueChange = { text -> text.toDoubleOrNull()?.let(viewModel::onHeightChanged) },
+                    label = { Text("Altura (cm)") },
+                    modifier = Modifier.testTag("heightField")
+                )
+            }
             SettingsSection(title = "Tema") {
                 AppTheme.entries.forEach { theme ->
                     SettingsOptionRow(
@@ -52,6 +81,16 @@ fun SettingsScreen(
                         selected = settings.theme == theme,
                         onClick = { viewModel.onThemeSelected(theme) },
                         testTag = "themeOption_${theme.name}"
+                    )
+                }
+            }
+            SettingsSection(title = "Paleta de colores") {
+                ColorPalette.entries.forEach { palette ->
+                    SettingsOptionRow(
+                        label = colorPaletteLabel(palette),
+                        selected = settings.colorPalette == palette,
+                        onClick = { viewModel.onColorPaletteSelected(palette) },
+                        testTag = "colorPaletteOption_${palette.name}"
                     )
                 }
             }
@@ -113,6 +152,30 @@ private fun SettingsOptionRow(label: String, selected: Boolean, onClick: () -> U
         Text(text = label, style = MaterialTheme.typography.bodyLarge, modifier = Modifier.padding(start = 8.dp))
     }
 }
+
+@Composable
+private fun SexOption(label: String, selected: Boolean, onClick: () -> Unit, testTag: String) {
+    Row(
+        verticalAlignment = Alignment.CenterVertically,
+        modifier = Modifier
+            .clickable(onClick = onClick)
+            .testTag(testTag)
+    ) {
+        RadioButton(selected = selected, onClick = onClick)
+        Text(text = label, modifier = Modifier.padding(start = 4.dp))
+    }
+}
+
+private fun colorPaletteLabel(palette: ColorPalette): String = when (palette) {
+    ColorPalette.DYNAMIC -> "Dinámica (Material You)"
+    ColorPalette.CLASSIC -> "Clásica"
+    ColorPalette.ENERGY -> "Energía"
+    ColorPalette.STEEL -> "Acero"
+    ColorPalette.NEON -> "Neón"
+}
+
+private fun formatProfileNumber(value: Double): String =
+    if (value == value.toLong().toDouble()) value.toLong().toString() else value.toString()
 
 private fun themeLabel(theme: AppTheme): String = when (theme) {
     AppTheme.LIGHT -> "Claro"

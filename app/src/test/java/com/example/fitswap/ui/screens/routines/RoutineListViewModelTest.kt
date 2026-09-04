@@ -2,6 +2,8 @@ package com.example.fitswap.ui.screens.routines
 
 import com.example.fitswap.MainDispatcherRule
 import com.example.fitswap.data.repository.fake.FakeRoutineRepository
+import com.example.fitswap.data.time.FixedCurrentDateProvider
+import java.time.DayOfWeek
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertTrue
@@ -15,7 +17,7 @@ class RoutineListViewModelTest {
 
     @Test
     fun `expone las rutinas sembradas con la rutina por defecto marcada`() = runTest {
-        val viewModel = RoutineListViewModel(FakeRoutineRepository())
+        val viewModel = RoutineListViewModel(FakeRoutineRepository(), FixedCurrentDateProvider(DayOfWeek.MONDAY))
 
         val routines = viewModel.routines.first { it.isNotEmpty() }
 

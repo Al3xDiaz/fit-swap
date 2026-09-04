@@ -5,6 +5,7 @@ import com.example.fitswap.data.repository.RoutineRepository
 import com.example.fitswap.domain.model.Routine
 import com.example.fitswap.domain.model.RoutineDay
 import com.example.fitswap.domain.model.RoutineExercise
+import java.time.DayOfWeek
 import javax.inject.Inject
 import javax.inject.Singleton
 import kotlinx.coroutines.flow.Flow
@@ -40,15 +41,34 @@ class FakeRoutineRepository @Inject constructor() : RoutineRepository {
         return newId
     }
 
-    override suspend fun addDay(routineId: String, dayName: String) {
+    override suspend fun setDefaultRoutine(routineId: String) {
+        routines.update { list -> list.map { it.copy(isDefault = it.id == routineId) } }
+    }
+
+    override suspend fun clearDefaultRoutine() {
+        routines.update { list -> list.map { it.copy(isDefault = false) } }
+    }
+
+    override suspend fun addDay(routineId: String, dayName: String, dayOfWeek: DayOfWeek?) {
         val newDayId = "$routineId-dia-${daySeq++}"
         updateRoutine(routineId) { routine ->
-            routine.copy(days = routine.days + RoutineDay(id = newDayId, name = dayName, exercises = emptyList()))
+            routine.copy(
+                days = routine.days + RoutineDay(
+                    id = newDayId,
+                    name = dayName,
+                    exercises = emptyList(),
+                    dayOfWeek = dayOfWeek,
+                )
+            )
         }
     }
 
     override suspend fun renameDay(routineId: String, dayId: String, newName: String) {
         updateDay(routineId, dayId) { day -> day.copy(name = newName) }
+    }
+
+    override suspend fun setDayOfWeek(routineId: String, dayId: String, dayOfWeek: DayOfWeek) {
+        updateDay(routineId, dayId) { day -> day.copy(dayOfWeek = dayOfWeek) }
     }
 
     override suspend fun removeDay(routineId: String, dayId: String) {

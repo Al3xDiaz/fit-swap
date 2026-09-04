@@ -5,12 +5,15 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.fitswap.data.repository.GalleryRepository
 import com.example.fitswap.data.repository.HistoryRepository
+import com.example.fitswap.data.repository.NotesRepository
 import com.example.fitswap.data.repository.RoutineRepository
 import com.example.fitswap.data.repository.SetRepository
 import com.example.fitswap.data.repository.SettingsRepository
 import com.example.fitswap.data.repository.SubstituteRepository
 import com.example.fitswap.data.repository.WorkoutSessionRepository
 import com.example.fitswap.data.time.CurrentDateProvider
+import com.example.fitswap.domain.logic.ExerciseHistoryAnalytics
+import com.example.fitswap.domain.logic.HistorySession
 import com.example.fitswap.domain.logic.SetPlanner
 import com.example.fitswap.domain.model.Exercise
 import com.example.fitswap.domain.model.GalleryItem
@@ -19,37 +22,69 @@ import com.example.fitswap.domain.model.LoggedSet
 import com.example.fitswap.domain.model.PlannedSet
 import com.example.fitswap.domain.model.RoutineExercise
 import com.example.fitswap.domain.model.SetType
+import com.example.fitswap.timer.RestTimer
 import dagger.hilt.android.lifecycle.HiltViewModel
+import java.time.LocalDate
 import javax.inject.Inject
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+
+data class ExerciseHistorySummary(
+    val exerciseId: String,
+    val exerciseName: String,
+    val maxWeightKg: Double?,
+    val totalVolumeKg: Double,
+    val recentSessions: List<HistorySession>,
+    val notesByDate: Map<LocalDate, String> = emptyMap(),
+)
 
 data class ActiveExerciseUiState(
     val isLoading: Boolean = true,
     val exercise: Exercise? = null,
     val phases: List<PhaseStatus> = emptyList(),
     val effectiveWeightKg: Double = 1.0,
+    /** Texto tal cual lo tipea el usuario en el campo de peso efectivo — puede estar vacío
+     * mientras edita; [effectiveWeightKg] es el último valor válido comprometido. */
+    val effectiveWeightInput: String = "1.0",
     val lastLoggedWeightKg: Double? = null,
     val currentSet: PlannedSet? = null,
     val currentStageWeightKg: Double = 1.0,
+    /** Texto tal cual lo tipea el usuario en el campo de peso de la etapa actual — mismo
+     * criterio que [effectiveWeightInput]. */
+    val currentStageWeightInput: String = "1.0",
     val currentStageWeightIsEffective: Boolean = false,
     val currentReps: Int = 0,
+    /** Texto tal cual lo tipea el usuario en el campo de reps — mismo criterio que
+     * [effectiveWeightInput]. */
+    val currentRepsInput: String = "0",
     val effectiveSetsDone: Int = 0,
     val effectiveSetsTotal: Int = 0,
     val restRemainingSeconds: Int? = null,
     val restTotalSeconds: Int = 0,
     val isComplete: Boolean = false,
-    /** No nulo cuando el descanso tras la última serie del ejercicio terminó y hay un siguiente
-     * ejercicio en el día al que avanzar automáticamente (ver [ActiveExerciseViewModel.consumeAutoAdvance]). */
-    val readyToAdvanceExerciseId: String? = null,
+    /** Cuenta regresiva (3, 2, 1) que arranca sola al completar la última serie planificada;
+     * al llegar a 0 (o si se toca antes el botón "Completar ejercicio") se guardan en bloque
+     * todas las series de la sesión — hasta entonces no se persistió nada (ver [registerSet]). */
+    val completionCountdownSeconds: Int? = null,
+    /** Id del ejercicio al que hay que avanzar automáticamente apenas termina de guardarse la
+     * sesión completa — la pantalla lo consume una sola vez y navega (ver [consumeAutoAdvance]). */
+    val autoAdvanceToExerciseId: String? = null,
+    /** Ids del ejercicio anterior/siguiente del día para los botones de navegación manual — el
+     * timer ya no avanza de ejercicio solo (ver [startRestTimer]). */
+    val previousExerciseId: String? = null,
+    val nextExerciseId: String? = null,
     val galleryItems: List<GalleryItem> = emptyList(),
+    val historySummaries: List<ExerciseHistorySummary> = emptyList(),
 )
+
+private const val COMPLETION_COUNTDOWN_SECONDS = 3
 
 data class PhaseStatus(val type: SetType, val state: PhaseState)
 
@@ -66,6 +101,8 @@ class ActiveExerciseViewModel @Inject constructor(
     private val currentDateProvider: CurrentDateProvider,
     private val settingsRepository: SettingsRepository,
     private val galleryRepository: GalleryRepository,
+    private val notesRepository: NotesRepository,
+    private val restTimerController: RestTimer,
 ) : ViewModel() {
 
     private val routineId: String = checkNotNull(savedStateHandle["routineId"])
@@ -82,14 +119,30 @@ class ActiveExerciseViewModel @Inject constructor(
     private var effectiveWeightKg = 1.0
     private var manualStageWeightOverrideKg: Double? = null
     private var substitutedExercise: Exercise? = null
-    private var restJob: Job? = null
+    private var historyJob: Job? = null
     private var galleryJob: Job? = null
+    private var completionCountdownJob: Job? = null
 
-    /** Id (slot) del siguiente ejercicio del día, o nulo si este es el último — mismo orden
-     * (`RoutineDay.exercises`) que ya usa `SessionMenuViewModel` para el estado hecho/pendiente. */
+    /** Series registradas en memoria, todavía no persistidas — se guardan en bloque recién al
+     * completar el ejercicio entero (ver [completeExercise]); si se sale antes, se descartan
+     * junto con el resto del progreso (mismo mensaje que ya mostraba el diálogo de salida). */
+    private val pendingLoggedSets = mutableListOf<LoggedSet>()
+    private val pendingHistoryPoints = mutableListOf<HistoryPoint>()
+
+    /** Id (slot) del ejercicio anterior/siguiente del día, o nulo si no hay — mismo orden
+     * (`RoutineDay.exercises`) que ya usa `SessionMenuViewModel`. Alimentan los botones
+     * "Anterior"/"Siguiente", que están siempre disponibles (la navegación entre ejercicios es
+     * manual, no depende de si el actual está completo). */
     private var nextRoutineExerciseId: String? = null
+    private var previousRoutineExerciseId: String? = null
 
     init {
+        viewModelScope.launch {
+            restTimerController.remainingSeconds.collect { remaining ->
+                _uiState.update { it.copy(restRemainingSeconds = remaining) }
+            }
+        }
+
         viewModelScope.launch {
             val routine = routineRepository.observeRoutine(routineId).first { it != null } ?: return@launch
             val day = routine.days.firstOrNull { it.id == dayId } ?: return@launch
@@ -98,6 +151,7 @@ class ActiveExerciseViewModel @Inject constructor(
             routineExercise = exercise
             val exerciseIndex = day.exercises.indexOf(exercise)
             nextRoutineExerciseId = day.exercises.getOrNull(exerciseIndex + 1)?.id
+            previousRoutineExerciseId = day.exercises.getOrNull(exerciseIndex - 1)?.id
 
             val restTimerSeconds = settingsRepository.observeSettings().first().restTimerSeconds
             plan = SetPlanner.buildPlan(exercise, restTimerSeconds)
@@ -112,8 +166,15 @@ class ActiveExerciseViewModel @Inject constructor(
                 val lastWeight = resolveSuggestedWeight(activeExercise)
                 effectiveWeightKg = SetPlanner.suggestedEffectiveWeight(lastWeight)
                 manualStageWeightOverrideKg = null
-                _uiState.update { it.copy(lastLoggedWeightKg = lastWeight) }
+                _uiState.update {
+                    it.copy(
+                        lastLoggedWeightKg = lastWeight,
+                        previousExerciseId = previousRoutineExerciseId,
+                        nextExerciseId = nextRoutineExerciseId,
+                    )
+                }
                 refreshUiState()
+                loadHistorySummaries(activeExercise)
 
                 galleryJob?.cancel()
                 galleryJob = viewModelScope.launch {
@@ -133,26 +194,116 @@ class ActiveExerciseViewModel @Inject constructor(
         return substitutes.firstNotNullOfOrNull { historyRepository.lastWeightKg(it.id) }
     }
 
-    fun updateEffectiveWeight(newWeightKg: Double) {
-        effectiveWeightKg = newWeightKg.coerceAtLeast(0.0)
-        refreshUiState()
-    }
-
-    fun updateCurrentStageWeight(newWeightKg: Double) {
-        if (_uiState.value.currentStageWeightIsEffective) {
-            updateEffectiveWeight(newWeightKg)
-        } else {
-            manualStageWeightOverrideKg = newWeightKg.coerceAtLeast(0.0)
-            refreshUiState()
+    /** Historial del ejercicio activo y de cada uno de sus sustitutos, por separado — cada uno
+     * mantiene su propio peso/progreso independiente (tab "Historial"). */
+    private fun loadHistorySummaries(activeExercise: Exercise) {
+        historyJob?.cancel()
+        historyJob = viewModelScope.launch {
+            val substitutes = substituteRepository.substitutesFor(activeExercise.id)
+            val exercises = listOf(activeExercise) + substitutes
+            val historyByExercise = combine(exercises.map { historyRepository.observeHistory(it.id) }) { it }
+            val notesByExerciseFlow = combine(exercises.map { notesRepository.observeNotes(it.id) }) { it }
+            combine(historyByExercise, notesByExerciseFlow) { pointsByExercise, notesByExercise ->
+                exercises.mapIndexed { index, ex ->
+                    val points = pointsByExercise[index]
+                    val notes = notesByExercise[index]
+                    ExerciseHistorySummary(
+                        exerciseId = ex.id,
+                        exerciseName = ex.name,
+                        maxWeightKg = ExerciseHistoryAnalytics.maxEffectiveWeightKg(points),
+                        totalVolumeKg = ExerciseHistoryAnalytics.totalEffectiveVolumeKg(points),
+                        recentSessions = ExerciseHistoryAnalytics.recentSessions(points),
+                        notesByDate = notes.associate { note -> note.date to note.text },
+                    )
+                }
+            }.collect { summaries -> _uiState.update { it.copy(historySummaries = summaries) } }
         }
     }
 
+    /** Edición del campo de peso efectivo: el texto se refleja tal cual (permite quedar
+     * vacío mientras se edita); el valor comprometido ([effectiveWeightKg], usado por la
+     * lógica de plan/registro) solo se actualiza cuando el texto parsea a un número válido. */
+    fun onEffectiveWeightInputChanged(text: String) {
+        _uiState.update { it.copy(effectiveWeightInput = text) }
+        text.toDoubleOrNull()?.let { parsed ->
+            effectiveWeightKg = parsed.coerceAtLeast(0.0)
+            recomputeStageWeight()
+        }
+    }
+
+    /** Si el campo de peso efectivo queda vacío al perder el foco, se restaura a 1. */
+    fun onEffectiveWeightFocusChanged(isFocused: Boolean) {
+        if (isFocused || _uiState.value.effectiveWeightInput.isNotBlank()) return
+        effectiveWeightKg = 1.0
+        _uiState.update { it.copy(effectiveWeightInput = formatWeight(1.0)) }
+        recomputeStageWeight()
+    }
+
+    /** Mismo criterio que [onEffectiveWeightInputChanged] para el peso sugerido de la etapa
+     * actual (cuando la etapa no es efectiva) o, si lo es, delega en el peso efectivo. */
+    fun onStageWeightInputChanged(text: String) {
+        _uiState.update { it.copy(currentStageWeightInput = text) }
+        text.toDoubleOrNull()?.let { parsed ->
+            if (_uiState.value.currentStageWeightIsEffective) {
+                effectiveWeightKg = parsed.coerceAtLeast(0.0)
+            } else {
+                manualStageWeightOverrideKg = parsed.coerceAtLeast(0.0)
+            }
+            recomputeStageWeight()
+        }
+    }
+
+    /** Si el campo de peso de etapa queda vacío al perder el foco, se restaura a 1. */
+    fun onStageWeightFocusChanged(isFocused: Boolean) {
+        if (isFocused || _uiState.value.currentStageWeightInput.isNotBlank()) return
+        if (_uiState.value.currentStageWeightIsEffective) {
+            effectiveWeightKg = 1.0
+        } else {
+            manualStageWeightOverrideKg = 1.0
+        }
+        _uiState.update { it.copy(currentStageWeightInput = formatWeight(1.0)) }
+        recomputeStageWeight()
+    }
+
     fun incrementReps() {
-        _uiState.update { it.copy(currentReps = it.currentReps + 1) }
+        _uiState.update { it.copy(currentReps = it.currentReps + 1, currentRepsInput = "${it.currentReps + 1}") }
     }
 
     fun decrementReps() {
-        _uiState.update { it.copy(currentReps = (it.currentReps - 1).coerceAtLeast(0)) }
+        _uiState.update {
+            val newReps = (it.currentReps - 1).coerceAtLeast(0)
+            it.copy(currentReps = newReps, currentRepsInput = "$newReps")
+        }
+    }
+
+    /** Edición directa por teclado del campo de reps, además de los botones +/-. Mismo
+     * criterio que [onEffectiveWeightInputChanged]: el texto se refleja tal cual, el valor
+     * comprometido solo se actualiza cuando parsea. */
+    fun onRepsInputChanged(text: String) {
+        _uiState.update { it.copy(currentRepsInput = text) }
+        text.toIntOrNull()?.let { parsed ->
+            _uiState.update { it.copy(currentReps = parsed.coerceAtLeast(0)) }
+        }
+    }
+
+    /** Si el campo de reps queda vacío al perder el foco, se restaura a 1. */
+    fun onRepsFocusChanged(isFocused: Boolean) {
+        if (isFocused || _uiState.value.currentRepsInput.isNotBlank()) return
+        _uiState.update { it.copy(currentReps = 1, currentRepsInput = "1") }
+    }
+
+    /** Recalcula solo el peso de etapa derivado del peso efectivo/override manual, sin tocar
+     * fase, reps ni completitud — se usa mientras el usuario edita los campos de peso, para no
+     * pisar lo que está tipeando en otros campos (ver [refreshUiState] para el recálculo
+     * completo que sí corresponde al avanzar de etapa). */
+    private fun recomputeStageWeight() {
+        val current = plan.getOrNull(planIndex)
+        val stageWeightKg = when {
+            current == null -> effectiveWeightKg
+            current.type == SetType.EFFECTIVE -> effectiveWeightKg
+            else -> manualStageWeightOverrideKg ?: (current.weightFactor * effectiveWeightKg)
+        }
+        _uiState.update { it.copy(effectiveWeightKg = effectiveWeightKg, currentStageWeightKg = stageWeightKg) }
     }
 
     fun registerSet() {
@@ -162,16 +313,16 @@ class ActiveExerciseViewModel @Inject constructor(
         val displayExercise = substitutedExercise ?: exercise.exercise
         val seq = loggedSetSeq++
 
-        val loggedSet = LoggedSet(
+        // No se persiste todavía — se acumula en memoria y recién se guarda en bloque al
+        // completar el ejercicio entero (ver [completeExercise]).
+        pendingLoggedSets += LoggedSet(
             id = "${exercise.id}-$seq",
             routineExerciseId = exercise.id,
             type = current.type,
             reps = state.currentReps,
             weightKg = state.currentStageWeightKg,
         )
-        viewModelScope.launch { setRepository.logSet(loggedSet) }
-
-        val historyPoint = HistoryPoint(
+        pendingHistoryPoints += HistoryPoint(
             id = "${displayExercise.id}-$seq",
             exerciseId = displayExercise.id,
             date = currentDateProvider.today(),
@@ -179,46 +330,70 @@ class ActiveExerciseViewModel @Inject constructor(
             reps = state.currentReps,
             weightKg = state.currentStageWeightKg,
         )
-        viewModelScope.launch { historyRepository.addHistoryPoint(historyPoint) }
 
         planIndex++
         manualStageWeightOverrideKg = null
-        startRestTimer(current.restSeconds, isLastSetOfExercise = planIndex >= plan.size)
+        startRestTimer(current.restSeconds)
         refreshUiState()
     }
 
-    /** Al agotarse el descanso tras la última serie del ejercicio, si hay un siguiente ejercicio en
-     * el día, avanza automáticamente (ver [readyToAdvanceExerciseId consumption][consumeAutoAdvance]
-     * en la Composable). Si es el último ejercicio del día, no hay a dónde avanzar — el usuario sigue
-     * manualmente desde el menú de sesión. */
-    private fun startRestTimer(totalSeconds: Int, isLastSetOfExercise: Boolean) {
-        restJob?.cancel()
-        restJob = viewModelScope.launch {
-            var remaining = totalSeconds
-            _uiState.update { it.copy(restRemainingSeconds = remaining, restTotalSeconds = totalSeconds) }
-            while (remaining > 0) {
+    /** Cuenta regresiva que arranca sola apenas [refreshUiState] detecta que no quedan series
+     * planificadas — da tiempo a tocar "Completar ejercicio" antes de que dispare sola. */
+    private fun startCompletionCountdown() {
+        completionCountdownJob?.cancel()
+        completionCountdownJob = viewModelScope.launch {
+            for (remaining in COMPLETION_COUNTDOWN_SECONDS downTo 1) {
+                _uiState.update { it.copy(completionCountdownSeconds = remaining) }
                 delay(1_000)
-                remaining--
-                _uiState.update { it.copy(restRemainingSeconds = remaining) }
             }
+            completeExercise()
+        }
+    }
+
+    /** Guarda en bloque todas las series acumuladas de la sesión (sets + historial) y marca a
+     * qué ejercicio avanzar — la pantalla consume [ActiveExerciseUiState.autoAdvanceToExerciseId]
+     * una sola vez y navega (ver [consumeAutoAdvance]). Se puede llamar tanto desde el botón
+     * "Completar ejercicio" como desde el propio countdown al llegar a 0; es seguro llamarla dos
+     * veces (la segunda no encuentra nada pendiente que guardar). */
+    fun completeExercise() {
+        completionCountdownJob?.cancel()
+        completionCountdownJob = null
+        if (pendingLoggedSets.isEmpty() && pendingHistoryPoints.isEmpty()) return
+
+        val setsToSave = pendingLoggedSets.toList()
+        val pointsToSave = pendingHistoryPoints.toList()
+        pendingLoggedSets.clear()
+        pendingHistoryPoints.clear()
+
+        viewModelScope.launch {
+            setsToSave.forEach { setRepository.logSet(it) }
+            pointsToSave.forEach { historyRepository.addHistoryPoint(it) }
             _uiState.update {
-                it.copy(
-                    restRemainingSeconds = null,
-                    readyToAdvanceExerciseId = if (isLastSetOfExercise) nextRoutineExerciseId else null,
-                )
+                it.copy(completionCountdownSeconds = null, autoAdvanceToExerciseId = nextRoutineExerciseId)
             }
         }
     }
 
-    /** Llamado por la Composable una vez que ya disparó la navegación al siguiente ejercicio, para
-     * no re-dispararla si `uiState` se vuelve a recolectar (ej. cambio de configuración). */
+    /** La pantalla la llama apenas consume [ActiveExerciseUiState.autoAdvanceToExerciseId] para
+     * navegar — evita navegar de nuevo en la siguiente recomposición. */
     fun consumeAutoAdvance() {
-        _uiState.update { it.copy(readyToAdvanceExerciseId = null) }
+        _uiState.update { it.copy(autoAdvanceToExerciseId = null) }
     }
 
-    fun addMedia(uri: String, isVideo: Boolean) {
-        val activeExercise = substitutedExercise ?: routineExercise?.exercise ?: return
-        viewModelScope.launch { galleryRepository.addMedia(activeExercise.id, uri, isVideo) }
+    /** El descanso corre en [RestTimerController] (respaldado por un foreground service) para
+     * sobrevivir a que la app se minimice y para poder notificar con sonido al terminar. Ya no
+     * avanza de ejercicio solo al llegar a cero — el usuario navega manualmente con los botones
+     * "Anterior"/"Siguiente" (ver [ActiveExerciseUiState.previousExerciseId]/[nextExerciseId]). */
+    private fun startRestTimer(totalSeconds: Int) {
+        _uiState.update { it.copy(restTotalSeconds = totalSeconds) }
+        restTimerController.start(totalSeconds)
+    }
+
+    /** Termina la rutina al confirmar la salida (back) — misma semántica que
+     * `SessionMenuViewModel.endRoutine()`: limpia las sustituciones de la sesión, no borra las
+     * series ya registradas. */
+    fun endRoutine() {
+        viewModelScope.launch { workoutSessionRepository.clearAll() }
     }
 
     private fun refreshUiState() {
@@ -233,22 +408,41 @@ class ActiveExerciseViewModel @Inject constructor(
         val effectiveSetsDone = plan.take(planIndex).count { it.type == SetType.EFFECTIVE }
         val effectiveSetsTotal = plan.count { it.type == SetType.EFFECTIVE }
 
+        val newReps = current?.plannedReps ?: _uiState.value.currentReps
+
         _uiState.update { state ->
             state.copy(
                 isLoading = false,
                 exercise = displayExercise,
                 phases = buildPhaseStatuses(current?.type),
                 effectiveWeightKg = effectiveWeightKg,
+                effectiveWeightInput = formatWeight(effectiveWeightKg),
                 currentSet = current,
                 currentStageWeightKg = stageWeightKg,
+                currentStageWeightInput = formatWeight(stageWeightKg),
                 currentStageWeightIsEffective = current?.type == SetType.EFFECTIVE,
-                currentReps = current?.plannedReps ?: state.currentReps,
+                currentReps = newReps,
+                currentRepsInput = "$newReps",
                 effectiveSetsDone = effectiveSetsDone,
                 effectiveSetsTotal = effectiveSetsTotal,
                 isComplete = current == null,
             )
         }
+
+        val hasPendingProgress = pendingLoggedSets.isNotEmpty() || pendingHistoryPoints.isNotEmpty()
+        if (current == null && hasPendingProgress) {
+            // Solo arranca la cuenta regresiva si hay algo pendiente de esta sesión — si se
+            // reabre un ejercicio ya completado antes (nada pendiente), se queda en el mensaje
+            // estático de completado sin disparar un guardado/avance vacío.
+            startCompletionCountdown()
+        } else {
+            completionCountdownJob?.cancel()
+            completionCountdownJob = null
+            _uiState.update { it.copy(completionCountdownSeconds = null) }
+        }
     }
+
+    private fun formatWeight(kg: Double): String = "%.1f".format(kg)
 
     private fun buildPhaseStatuses(currentType: SetType?): List<PhaseStatus> =
         SetType.entries.map { type ->

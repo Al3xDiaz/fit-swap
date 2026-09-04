@@ -4,8 +4,11 @@ import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertTextEquals
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
 import androidx.compose.ui.test.onNodeWithTag
+import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
+import androidx.test.espresso.Espresso
 import com.example.fitswap.MainActivity
+import com.example.fitswap.waitUntilTagExists
 import dagger.hilt.android.testing.HiltAndroidRule
 import dagger.hilt.android.testing.HiltAndroidTest
 import org.junit.Before
@@ -35,12 +38,42 @@ class ActiveExerciseFlowTest {
         composeTestRule.onNodeWithTag("currentStageLabel").assertTextEquals("Calentamiento")
 
         // Registrar el calentamiento arranca el temporizador de descanso y avanza a la primera serie efectiva.
+        // El descanso corre en un foreground service (M15) — esperar el viaje async antes de leerlo.
         composeTestRule.onNodeWithTag("registerSetButton").performClick()
+        composeTestRule.waitUntilTagExists("restTimerLabel")
         composeTestRule.onNodeWithTag("restTimerLabel").assertIsDisplayed()
         composeTestRule.onNodeWithTag("currentStageLabel").assertTextEquals("Serie 1 de 4 (efectiva)")
 
         // Registrar la primera serie efectiva avanza el contador de series efectivas.
         composeTestRule.onNodeWithTag("registerSetButton").performClick()
         composeTestRule.onNodeWithTag("currentStageLabel").assertTextEquals("Serie 2 de 4 (efectiva)")
+    }
+
+    @Test
+    fun elBotonSiguienteAvanzaDeEjercicioSinTerminarElActual() {
+        composeTestRule.onNodeWithTag("routineListItem_default").performClick()
+        composeTestRule.onNodeWithTag("startWorkoutButton_default-martes").performClick()
+        composeTestRule.onNodeWithTag("appTopBarTitle").assertTextEquals("Elevaciones laterales")
+
+        // "Siguiente" está siempre disponible, no requiere terminar el ejercicio actual.
+        composeTestRule.onNodeWithTag("nextExerciseButton").performClick()
+        composeTestRule.onNodeWithTag("appTopBarTitle").assertTextEquals("Press militar en máquina")
+
+        composeTestRule.onNodeWithTag("previousExerciseButton").performClick()
+        composeTestRule.onNodeWithTag("appTopBarTitle").assertTextEquals("Elevaciones laterales")
+    }
+
+    @Test
+    fun volverDesdeEjercicioActivoPideConfirmacionYTerminaLaRutina() {
+        composeTestRule.onNodeWithTag("routineListItem_default").performClick()
+        composeTestRule.onNodeWithTag("startWorkoutButton_default-martes").performClick()
+        composeTestRule.waitUntilTagExists("registerSetButton")
+
+        // El ícono de la topBar ahora abre el menú de sesión (reemplaza al drawer principal
+        // mientras hay rutina activa, ver AppNavHost) — salir se hace con el back del sistema.
+        Espresso.pressBack()
+        composeTestRule.onNodeWithText("Confirmar").performClick()
+
+        composeTestRule.onNodeWithTag("appTopBarTitle").assertTextEquals("Rutinas")
     }
 }

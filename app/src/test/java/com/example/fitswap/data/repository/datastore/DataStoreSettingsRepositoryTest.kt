@@ -3,6 +3,7 @@ package com.example.fitswap.data.repository.datastore
 import androidx.datastore.preferences.core.PreferenceDataStoreFactory
 import com.example.fitswap.domain.model.AppSettings
 import com.example.fitswap.domain.model.AppTheme
+import com.example.fitswap.domain.model.ColorPalette
 import com.example.fitswap.domain.model.UiDensity
 import com.example.fitswap.domain.model.UnitSystem
 import java.io.File
@@ -37,12 +38,14 @@ class DataStoreSettingsRepositoryTest {
         repository.updateUiDensity(UiDensity.COMPACT)
         repository.updateUnitSystem(UnitSystem.IMPERIAL)
         repository.updateRestTimerSeconds(45)
+        repository.updateColorPalette(ColorPalette.STEEL)
 
         val settings = repository.observeSettings().first()
         assertEquals(AppTheme.DARK, settings.theme)
         assertEquals(UiDensity.COMPACT, settings.uiDensity)
         assertEquals(UnitSystem.IMPERIAL, settings.unitSystem)
         assertEquals(45, settings.restTimerSeconds)
+        assertEquals(ColorPalette.STEEL, settings.colorPalette)
     }
 
     @Test

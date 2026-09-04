@@ -1,5 +1,6 @@
 package com.example.fitswap.ui.common
 
+import androidx.compose.foundation.layout.RowScope
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Close
@@ -19,10 +20,12 @@ fun AppTopBar(
     title: String,
     modifier: Modifier = Modifier,
     navigationIcon: @Composable () -> Unit = {},
+    actions: @Composable RowScope.() -> Unit = {},
 ) {
     TopAppBar(
         title = { Text(title, modifier = Modifier.testTag("appTopBarTitle")) },
         navigationIcon = navigationIcon,
+        actions = actions,
         modifier = modifier
     )
 }

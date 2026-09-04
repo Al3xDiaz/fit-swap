@@ -5,13 +5,16 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.fitswap.data.repository.ExerciseRepository
 import com.example.fitswap.data.repository.HistoryRepository
+import com.example.fitswap.data.repository.NotesRepository
 import com.example.fitswap.domain.logic.ExerciseHistoryAnalytics
 import com.example.fitswap.domain.logic.HistorySession
 import dagger.hilt.android.lifecycle.HiltViewModel
+import java.time.LocalDate
 import javax.inject.Inject
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 
@@ -21,6 +24,9 @@ data class ExerciseHistoryUiState(
     val maxWeightKg: Double? = null,
     val totalVolumeKg: Double = 0.0,
     val recentSessions: List<HistorySession> = emptyList(),
+    /** Nota de ese día para este ejercicio, si se escribió una (ver [NotesRepository]) —
+     * se muestra junto a la sesión correspondiente. */
+    val notesByDate: Map<LocalDate, String> = emptyMap(),
 )
 
 @HiltViewModel
@@ -28,6 +34,7 @@ class ExerciseHistoryViewModel @Inject constructor(
     savedStateHandle: SavedStateHandle,
     private val exerciseRepository: ExerciseRepository,
     private val historyRepository: HistoryRepository,
+    private val notesRepository: NotesRepository,
 ) : ViewModel() {
 
     private val exerciseId: String = checkNotNull(savedStateHandle["exerciseId"])
@@ -38,7 +45,10 @@ class ExerciseHistoryViewModel @Inject constructor(
     init {
         viewModelScope.launch {
             val exercise = exerciseRepository.getExercise(exerciseId)
-            historyRepository.observeHistory(exerciseId).collect { points ->
+            combine(
+                historyRepository.observeHistory(exerciseId),
+                notesRepository.observeNotes(exerciseId),
+            ) { points, notes ->
                 _uiState.update {
                     it.copy(
                         isLoading = false,
@@ -46,9 +56,10 @@ class ExerciseHistoryViewModel @Inject constructor(
                         maxWeightKg = ExerciseHistoryAnalytics.maxEffectiveWeightKg(points),
                         totalVolumeKg = ExerciseHistoryAnalytics.totalEffectiveVolumeKg(points),
                         recentSessions = ExerciseHistoryAnalytics.recentSessions(points),
+                        notesByDate = notes.associate { note -> note.date to note.text },
                     )
                 }
-            }
+            }.collect {}
         }
     }
 }

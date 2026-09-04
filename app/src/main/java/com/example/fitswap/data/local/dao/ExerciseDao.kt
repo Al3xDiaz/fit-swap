@@ -23,4 +23,11 @@ interface ExerciseDao {
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insert(exercise: ExerciseEntity)
+
+    /** Usado para bloquear el borrado de un ejercicio que sigue en uso en alguna rutina. */
+    @Query("SELECT COUNT(*) FROM routine_exercises WHERE exerciseId = :exerciseId")
+    suspend fun routineUsageCount(exerciseId: String): Int
+
+    @Query("DELETE FROM exercises WHERE id = :id")
+    suspend fun delete(id: String)
 }

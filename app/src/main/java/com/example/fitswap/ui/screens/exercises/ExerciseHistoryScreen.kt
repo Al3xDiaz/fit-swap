@@ -8,8 +8,12 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.HorizontalDivider
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
@@ -28,6 +32,7 @@ import com.example.fitswap.ui.common.BackNavigationIcon
 @Composable
 fun ExerciseHistoryScreen(
     onBack: () -> Unit,
+    onEdit: () -> Unit,
     viewModel: ExerciseHistoryViewModel = hiltViewModel(),
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
@@ -36,7 +41,12 @@ fun ExerciseHistoryScreen(
         topBar = {
             AppTopBar(
                 title = "Historial — ${uiState.exerciseName}",
-                navigationIcon = { BackNavigationIcon(onBack = onBack) }
+                navigationIcon = { BackNavigationIcon(onBack = onBack) },
+                actions = {
+                    IconButton(onClick = onEdit, modifier = Modifier.testTag("editExerciseButton")) {
+                        Icon(Icons.Filled.Edit, contentDescription = "Editar ejercicio")
+                    }
+                }
             )
         }
     ) { innerPadding ->
@@ -86,7 +96,7 @@ fun ExerciseHistoryScreen(
                 )
                 LazyColumn {
                     items(uiState.recentSessions, key = { it.date }) { session ->
-                        SessionRow(session)
+                        SessionRow(session, note = uiState.notesByDate[session.date])
                         HorizontalDivider()
                     }
                 }
@@ -96,7 +106,7 @@ fun ExerciseHistoryScreen(
 }
 
 @Composable
-private fun SessionRow(session: HistorySession) {
+private fun SessionRow(session: HistorySession, note: String?) {
     Column(
         modifier = Modifier
             .fillMaxWidth()
@@ -108,6 +118,13 @@ private fun SessionRow(session: HistorySession) {
             text = "${session.setCount} ${seriesLabel(session.setCount)} · ${formatWeight(session.volumeKg)} kg",
             style = MaterialTheme.typography.bodyMedium
         )
+        if (!note.isNullOrBlank()) {
+            Text(
+                text = "📝 $note",
+                style = MaterialTheme.typography.bodySmall,
+                modifier = Modifier.testTag("historySessionNote_${session.date}")
+            )
+        }
     }
 }
 

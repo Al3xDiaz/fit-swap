@@ -6,6 +6,8 @@ import com.example.fitswap.data.repository.fake.ExerciseCatalog
 import com.example.fitswap.data.repository.fake.FakeNotesRepository
 import com.example.fitswap.data.repository.fake.FakeRoutineRepository
 import com.example.fitswap.data.repository.fake.FakeWorkoutSessionRepository
+import com.example.fitswap.data.time.FixedCurrentDateProvider
+import java.time.DayOfWeek
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
@@ -33,38 +35,57 @@ class NotesViewModelTest {
         routineRepository = FakeRoutineRepository(),
         notesRepository = notesRepository,
         workoutSessionRepository = workoutSessionRepository,
+        currentDateProvider = FixedCurrentDateProvider(DayOfWeek.TUESDAY),
     )
 
     @Test
-    fun `expone el nombre del ejercicio y no tiene notas por defecto`() = runTest {
+    fun `expone el nombre del ejercicio y no tiene nota por defecto`() = runTest {
         val viewModel = viewModel()
 
         val state = viewModel.uiState.first { !it.isLoading }
 
         assertEquals("Press de pecho", state.exerciseName)
-        assertTrue(state.notes.isEmpty())
+        assertTrue(state.noteText.isEmpty())
     }
 
     @Test
-    fun `agregar una nota la refleja en el estado`() = runTest {
-        val viewModel = viewModel()
+    fun `guardar la nota de hoy la refleja en el repositorio`() = runTest {
+        val notesRepository = FakeNotesRepository()
+        val viewModel = viewModel(notesRepository = notesRepository)
         viewModel.uiState.first { !it.isLoading }
 
-        viewModel.addNote("Ajustar asiento a nivel de barbilla")
+        viewModel.onNoteTextChanged("Ajustar asiento a nivel de barbilla")
+        viewModel.save()
 
-        val state = viewModel.uiState.first()
-        assertEquals(listOf("Ajustar asiento a nivel de barbilla"), state.notes.map { it.text })
+        val notes = notesRepository.observeNotes(ExerciseCatalog.pressDePecho.id).first()
+        assertEquals(listOf("Ajustar asiento a nivel de barbilla"), notes.map { it.text })
     }
 
     @Test
-    fun `una nota en blanco no se agrega`() = runTest {
-        val viewModel = viewModel()
+    fun `guardar de nuevo el mismo dia reemplaza la nota anterior en vez de acumular`() = runTest {
+        val notesRepository = FakeNotesRepository()
+        val viewModel = viewModel(notesRepository = notesRepository)
         viewModel.uiState.first { !it.isLoading }
 
-        viewModel.addNote("   ")
+        viewModel.onNoteTextChanged("Primera versión")
+        viewModel.save()
+        viewModel.onNoteTextChanged("Versión corregida")
+        viewModel.save()
 
-        val state = viewModel.uiState.first()
-        assertTrue(state.notes.isEmpty())
+        val notes = notesRepository.observeNotes(ExerciseCatalog.pressDePecho.id).first()
+        assertEquals(listOf("Versión corregida"), notes.map { it.text })
+    }
+
+    @Test
+    fun `una nota en blanco no se persiste`() = runTest {
+        val notesRepository = FakeNotesRepository()
+        val viewModel = viewModel(notesRepository = notesRepository)
+        viewModel.uiState.first { !it.isLoading }
+
+        viewModel.onNoteTextChanged("   ")
+        viewModel.save()
+
+        assertTrue(notesRepository.observeNotes(ExerciseCatalog.pressDePecho.id).first().isEmpty())
     }
 
     @Test
@@ -77,7 +98,8 @@ class NotesViewModelTest {
         val state = viewModel.uiState.first { !it.isLoading }
         assertEquals("Press inclinado", state.exerciseName)
 
-        viewModel.addNote("Nota para el sustituto")
+        viewModel.onNoteTextChanged("Nota para el sustituto")
+        viewModel.save()
 
         val substituteNotes = notesRepository.observeNotes(ExerciseCatalog.pressInclinado.id).first()
         val originalNotes = notesRepository.observeNotes(ExerciseCatalog.pressDePecho.id).first()

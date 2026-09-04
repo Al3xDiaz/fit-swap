@@ -14,6 +14,7 @@ import com.example.fitswap.data.local.entity.toEntity
 import com.example.fitswap.data.repository.MoveDirection
 import com.example.fitswap.data.repository.RoutineRepository
 import com.example.fitswap.domain.model.Routine
+import java.time.DayOfWeek
 import javax.inject.Inject
 import javax.inject.Singleton
 import kotlinx.coroutines.flow.Flow
@@ -66,16 +67,37 @@ class RoomRoutineRepository @Inject constructor(
         return newId
     }
 
-    override suspend fun addDay(routineId: String, dayName: String) {
+    override suspend fun setDefaultRoutine(routineId: String) {
+        database.withTransaction {
+            routineDao.clearDefaultRoutine()
+            routineDao.markDefaultRoutine(routineId)
+        }
+    }
+
+    override suspend fun clearDefaultRoutine() {
+        routineDao.clearDefaultRoutine()
+    }
+
+    override suspend fun addDay(routineId: String, dayName: String, dayOfWeek: DayOfWeek?) {
         val newDayId = nextSequentialId("$routineId-dia", routineDao.dayIdsForRoutine(routineId))
         val orderIndex = routineDao.maxDayOrderIndex(routineId) + 1
         routineDao.insertDay(
-            RoutineDayEntity(id = newDayId, routineId = routineId, name = dayName, dayOfWeek = null, orderIndex = orderIndex)
+            RoutineDayEntity(
+                id = newDayId,
+                routineId = routineId,
+                name = dayName,
+                dayOfWeek = dayOfWeek?.name,
+                orderIndex = orderIndex,
+            )
         )
     }
 
     override suspend fun renameDay(routineId: String, dayId: String, newName: String) {
         routineDao.renameDay(dayId, newName)
+    }
+
+    override suspend fun setDayOfWeek(routineId: String, dayId: String, dayOfWeek: DayOfWeek) {
+        routineDao.setDayOfWeek(dayId, dayOfWeek.name)
     }
 
     override suspend fun removeDay(routineId: String, dayId: String) {

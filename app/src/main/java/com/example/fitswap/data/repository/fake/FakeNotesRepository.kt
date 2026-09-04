@@ -2,6 +2,8 @@ package com.example.fitswap.data.repository.fake
 
 import com.example.fitswap.data.repository.NotesRepository
 import com.example.fitswap.domain.model.Note
+import com.example.fitswap.domain.model.noteId
+import java.time.LocalDate
 import javax.inject.Inject
 import javax.inject.Singleton
 import kotlinx.coroutines.flow.Flow
@@ -13,18 +15,20 @@ import kotlinx.coroutines.flow.update
 class FakeNotesRepository @Inject constructor() : NotesRepository {
 
     private val notesByExercise = MutableStateFlow<Map<String, List<Note>>>(emptyMap())
-    private var noteSeq = 0
 
     override fun observeNotes(exerciseId: String): Flow<List<Note>> =
         notesByExercise.map { it[exerciseId].orEmpty() }
 
+    override fun observeNote(exerciseId: String, date: LocalDate): Flow<Note?> =
+        notesByExercise.map { current -> current[exerciseId].orEmpty().find { it.id == noteId(exerciseId, date) } }
+
     override fun observeAllNotes(): Flow<List<Note>> =
         notesByExercise.map { it.values.flatten() }
 
-    override suspend fun addNote(exerciseId: String, text: String) {
-        val note = Note(id = "note-${noteSeq++}", exerciseId = exerciseId, text = text)
+    override suspend fun setNote(exerciseId: String, date: LocalDate, text: String) {
+        val note = Note(id = noteId(exerciseId, date), exerciseId = exerciseId, date = date, text = text)
         notesByExercise.update { current ->
-            val existing = current[exerciseId].orEmpty()
+            val existing = current[exerciseId].orEmpty().filterNot { it.id == note.id }
             current + (exerciseId to (existing + note))
         }
     }

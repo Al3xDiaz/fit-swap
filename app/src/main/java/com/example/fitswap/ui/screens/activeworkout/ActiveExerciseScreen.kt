@@ -1,8 +1,9 @@
 package com.example.fitswap.ui.screens.activeworkout
 
-import android.net.Uri
+import android.Manifest
+import android.os.Build
+import androidx.activity.compose.BackHandler
 import androidx.activity.compose.rememberLauncherForActivityResult
-import androidx.activity.result.PickVisualMediaRequest
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
@@ -13,12 +14,24 @@ import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.pager.HorizontalPager
+import androidx.compose.foundation.pager.rememberPagerState
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.automirrored.filled.ArrowForward
+import androidx.compose.material.icons.filled.SwapHoriz
 import androidx.compose.material3.AssistChip
+import androidx.compose.material3.BottomAppBar
 import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.HorizontalDivider
+import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
@@ -30,48 +43,81 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.testTag
+import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
+import androidx.core.content.ContextCompat
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import coil.compose.AsyncImage
+import com.example.fitswap.domain.logic.HistorySession
 import com.example.fitswap.domain.model.GalleryItem
 import com.example.fitswap.domain.model.PlannedSet
 import com.example.fitswap.domain.model.SetType
 import com.example.fitswap.ui.common.AppTopBar
-import com.example.fitswap.ui.common.BackNavigationIcon
+import com.example.fitswap.ui.common.ConfirmDialog
+import com.example.fitswap.ui.common.MenuNavigationIcon
+import kotlinx.coroutines.launch
 
 @Composable
 fun ActiveExerciseScreen(
-    onBack: () -> Unit,
+    onExitDiscarding: () -> Unit,
     onSwapExercise: () -> Unit,
     onOpenNotes: () -> Unit,
-    onOpenSessionMenu: () -> Unit,
-    onExerciseAutoAdvance: (nextExerciseId: String) -> Unit,
+    onOpenDrawer: () -> Unit,
+    onPreviousExercise: (exerciseId: String) -> Unit,
+    onNextExercise: (exerciseId: String) -> Unit,
     viewModel: ActiveExerciseViewModel = hiltViewModel(),
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
-    var selectedTab by remember { mutableIntStateOf(0) }
+    val pagerState = rememberPagerState(pageCount = { 3 })
+    val pagerScope = rememberCoroutineScope()
+    var showExitConfirm by remember { mutableStateOf(false) }
+    val context = LocalContext.current
 
-    LaunchedEffect(uiState.readyToAdvanceExerciseId) {
-        uiState.readyToAdvanceExerciseId?.let { nextExerciseId ->
-            viewModel.consumeAutoAdvance()
-            onExerciseAutoAdvance(nextExerciseId)
+    val notificationPermissionLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.RequestPermission(),
+        onResult = {}
+    )
+    LaunchedEffect(Unit) {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            val granted = ContextCompat.checkSelfPermission(context, Manifest.permission.POST_NOTIFICATIONS)
+            if (granted != android.content.pm.PackageManager.PERMISSION_GRANTED) {
+                notificationPermissionLauncher.launch(Manifest.permission.POST_NOTIFICATIONS)
+            }
         }
     }
+
+    BackHandler { showExitConfirm = true }
 
     Scaffold(
         topBar = {
             AppTopBar(
                 title = uiState.exercise?.name.orEmpty(),
-                navigationIcon = { BackNavigationIcon(onBack = onBack) }
+                navigationIcon = { MenuNavigationIcon(onMenuClick = onOpenDrawer) },
+                actions = {
+                    IconButton(onClick = onSwapExercise, modifier = Modifier.testTag("swapExerciseButton")) {
+                        Icon(Icons.Filled.SwapHoriz, contentDescription = "Cambiar ejercicio")
+                    }
+                }
+            )
+        },
+        bottomBar = {
+            NextPreviousBar(
+                previousExerciseId = uiState.previousExerciseId,
+                nextExerciseId = uiState.nextExerciseId,
+                onPreviousExercise = onPreviousExercise,
+                onNextExercise = onNextExercise,
             )
         }
     ) { innerPadding ->
@@ -80,43 +126,108 @@ fun ActiveExerciseScreen(
                 .fillMaxSize()
                 .padding(innerPadding)
         ) {
-            SecondaryTabRow(selectedTabIndex = selectedTab) {
+            SecondaryTabRow(selectedTabIndex = pagerState.currentPage) {
                 Tab(
-                    selected = selectedTab == 0,
-                    onClick = { selectedTab = 0 },
+                    selected = pagerState.currentPage == 0,
+                    onClick = { pagerScope.launch { pagerState.animateScrollToPage(0) } },
                     text = { Text("Entrenamiento") },
                     modifier = Modifier.testTag("tab_entrenamiento")
                 )
                 Tab(
-                    selected = selectedTab == 1,
-                    onClick = { selectedTab = 1 },
+                    selected = pagerState.currentPage == 1,
+                    onClick = { pagerScope.launch { pagerState.animateScrollToPage(1) } },
                     text = { Text("Galería") },
                     modifier = Modifier.testTag("tab_galeria")
                 )
+                Tab(
+                    selected = pagerState.currentPage == 2,
+                    onClick = { pagerScope.launch { pagerState.animateScrollToPage(2) } },
+                    text = { Text("Historial") },
+                    modifier = Modifier.testTag("tab_historial")
+                )
             }
 
-            when {
-                uiState.isLoading -> Box(
+            if (uiState.isLoading) {
+                Box(
                     modifier = Modifier.fillMaxSize(),
                     contentAlignment = Alignment.Center
                 ) { CircularProgressIndicator() }
+            } else {
+                HorizontalPager(state = pagerState, modifier = Modifier.fillMaxSize()) { page ->
+                    when (page) {
+                        0 -> TrainingTab(
+                            uiState = uiState,
+                            onOpenNotes = onOpenNotes,
+                            onEffectiveWeightInputChange = viewModel::onEffectiveWeightInputChanged,
+                            onEffectiveWeightFocusChange = viewModel::onEffectiveWeightFocusChanged,
+                            onStageWeightInputChange = viewModel::onStageWeightInputChanged,
+                            onStageWeightFocusChange = viewModel::onStageWeightFocusChanged,
+                            onIncrementReps = viewModel::incrementReps,
+                            onDecrementReps = viewModel::decrementReps,
+                            onRepsInputChange = viewModel::onRepsInputChanged,
+                            onRepsFocusChange = viewModel::onRepsFocusChanged,
+                            onRegisterSet = viewModel::registerSet,
+                            onCompleteExercise = viewModel::completeExercise,
+                        )
 
-                selectedTab == 0 -> TrainingTab(
-                    uiState = uiState,
-                    onSwapExercise = onSwapExercise,
-                    onOpenNotes = onOpenNotes,
-                    onOpenSessionMenu = onOpenSessionMenu,
-                    onEffectiveWeightChange = viewModel::updateEffectiveWeight,
-                    onStageWeightChange = viewModel::updateCurrentStageWeight,
-                    onIncrementReps = viewModel::incrementReps,
-                    onDecrementReps = viewModel::decrementReps,
-                    onRegisterSet = viewModel::registerSet,
-                )
+                        1 -> GalleryTab(galleryItems = uiState.galleryItems)
 
-                else -> GalleryTab(
-                    galleryItems = uiState.galleryItems,
-                    onMediaPicked = { uri, isVideo -> viewModel.addMedia(uri.toString(), isVideo) },
-                )
+                        else -> HistoryTab(summaries = uiState.historySummaries)
+                    }
+                }
+            }
+        }
+    }
+
+    LaunchedEffect(uiState.autoAdvanceToExerciseId) {
+        val target = uiState.autoAdvanceToExerciseId ?: return@LaunchedEffect
+        viewModel.consumeAutoAdvance()
+        onNextExercise(target)
+    }
+
+    if (showExitConfirm) {
+        ConfirmDialog(
+            title = "¿Salir del entrenamiento?",
+            message = "Se descartará el progreso de este ejercicio y se terminará la rutina en curso.",
+            onConfirm = {
+                showExitConfirm = false
+                viewModel.endRoutine()
+                onExitDiscarding()
+            },
+            onCancel = { showExitConfirm = false }
+        )
+    }
+}
+
+@Composable
+private fun NextPreviousBar(
+    previousExerciseId: String?,
+    nextExerciseId: String?,
+    onPreviousExercise: (String) -> Unit,
+    onNextExercise: (String) -> Unit,
+) {
+    BottomAppBar {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 16.dp),
+            horizontalArrangement = Arrangement.SpaceBetween
+        ) {
+            OutlinedButton(
+                onClick = { previousExerciseId?.let(onPreviousExercise) },
+                enabled = previousExerciseId != null,
+                modifier = Modifier.testTag("previousExerciseButton")
+            ) {
+                Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = null)
+                Text(" Anterior")
+            }
+            OutlinedButton(
+                onClick = { nextExerciseId?.let(onNextExercise) },
+                enabled = nextExerciseId != null,
+                modifier = Modifier.testTag("nextExerciseButton")
+            ) {
+                Text("Siguiente ")
+                Icon(Icons.AutoMirrored.Filled.ArrowForward, contentDescription = null)
             }
         }
     }
@@ -125,14 +236,17 @@ fun ActiveExerciseScreen(
 @Composable
 private fun TrainingTab(
     uiState: ActiveExerciseUiState,
-    onSwapExercise: () -> Unit,
     onOpenNotes: () -> Unit,
-    onOpenSessionMenu: () -> Unit,
-    onEffectiveWeightChange: (Double) -> Unit,
-    onStageWeightChange: (Double) -> Unit,
+    onEffectiveWeightInputChange: (String) -> Unit,
+    onEffectiveWeightFocusChange: (Boolean) -> Unit,
+    onStageWeightInputChange: (String) -> Unit,
+    onStageWeightFocusChange: (Boolean) -> Unit,
     onIncrementReps: () -> Unit,
     onDecrementReps: () -> Unit,
+    onRepsInputChange: (String) -> Unit,
+    onRepsFocusChange: (Boolean) -> Unit,
     onRegisterSet: () -> Unit,
+    onCompleteExercise: () -> Unit,
 ) {
     val exercise = uiState.exercise
 
@@ -162,10 +276,13 @@ private fun TrainingTab(
         }
 
         OutlinedTextField(
-            value = formatWeight(uiState.effectiveWeightKg),
-            onValueChange = { text -> text.toDoubleOrNull()?.let(onEffectiveWeightChange) },
+            value = uiState.effectiveWeightInput,
+            onValueChange = onEffectiveWeightInputChange,
             label = { Text("Peso efectivo (kg)") },
-            modifier = Modifier.testTag("effectiveWeightField")
+            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
+            modifier = Modifier
+                .testTag("effectiveWeightField")
+                .onFocusChanged { onEffectiveWeightFocusChange(it.isFocused) }
         )
         uiState.lastLoggedWeightKg?.let { lastWeight ->
             Text(
@@ -175,16 +292,27 @@ private fun TrainingTab(
             )
         }
 
-        OutlinedButton(onClick = onSwapExercise, modifier = Modifier.testTag("swapExerciseButton")) {
-            Text("Cambiar ejercicio")
-        }
-
         if (uiState.isComplete) {
             Text(
                 text = "¡Ejercicio completado!",
                 style = MaterialTheme.typography.titleMedium,
                 modifier = Modifier.testTag("exerciseCompleteLabel")
             )
+            uiState.completionCountdownSeconds?.let { remaining ->
+                Text(
+                    text = "Guardando y pasando al siguiente en ${remaining}s…",
+                    style = MaterialTheme.typography.bodyMedium,
+                    modifier = Modifier.testTag("completionCountdownLabel")
+                )
+                Button(
+                    onClick = onCompleteExercise,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .testTag("completeExerciseButton")
+                ) {
+                    Text("Completar ejercicio")
+                }
+            }
         } else {
             uiState.currentSet?.let { current ->
                 Text(
@@ -195,10 +323,13 @@ private fun TrainingTab(
 
                 if (!uiState.currentStageWeightIsEffective) {
                     OutlinedTextField(
-                        value = formatWeight(uiState.currentStageWeightKg),
-                        onValueChange = { text -> text.toDoubleOrNull()?.let(onStageWeightChange) },
+                        value = uiState.currentStageWeightInput,
+                        onValueChange = onStageWeightInputChange,
                         label = { Text("Peso sugerido (kg)") },
-                        modifier = Modifier.testTag("stageWeightField")
+                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
+                        modifier = Modifier
+                            .testTag("stageWeightField")
+                            .onFocusChanged { onStageWeightFocusChange(it.isFocused) }
                     )
                 }
 
@@ -210,10 +341,14 @@ private fun TrainingTab(
                     IconButton(onClick = onDecrementReps, modifier = Modifier.testTag("repsMinusButton")) {
                         Text("-")
                     }
-                    Text(
-                        text = "${uiState.currentReps}",
-                        style = MaterialTheme.typography.titleLarge,
-                        modifier = Modifier.testTag("repsValue")
+                    OutlinedTextField(
+                        value = uiState.currentRepsInput,
+                        onValueChange = onRepsInputChange,
+                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                        modifier = Modifier
+                            .width(72.dp)
+                            .testTag("repsValue")
+                            .onFocusChanged { onRepsFocusChange(it.isFocused) }
                     )
                     IconButton(onClick = onIncrementReps, modifier = Modifier.testTag("repsPlusButton")) {
                         Text("+")
@@ -247,34 +382,16 @@ private fun TrainingTab(
             }
         }
 
-        Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-            OutlinedButton(onClick = onOpenNotes, modifier = Modifier.testTag("notesButton")) {
-                Text("Notas")
-            }
-            OutlinedButton(onClick = onOpenSessionMenu, modifier = Modifier.testTag("sessionMenuButton")) {
-                Text("Menú de sesión")
-            }
+        OutlinedButton(onClick = onOpenNotes, modifier = Modifier.testTag("notesButton")) {
+            Text("Notas")
         }
     }
 }
 
+/** Solo lectura: el alta/baja de fotos y videos se hace desde la pantalla de editar ejercicio
+ * (`ExerciseFormScreen`) — acá solo se ven y se aplican al entrenamiento en curso. */
 @Composable
-private fun GalleryTab(
-    galleryItems: List<GalleryItem>,
-    onMediaPicked: (uri: Uri, isVideo: Boolean) -> Unit,
-) {
-    val context = LocalContext.current
-    val pickMediaLauncher = rememberLauncherForActivityResult(
-        contract = ActivityResultContracts.PickVisualMedia()
-    ) { uri: Uri? ->
-        if (uri == null) return@rememberLauncherForActivityResult
-        val isVideo = context.contentResolver.getType(uri)?.startsWith("video/") == true
-        onMediaPicked(uri, isVideo)
-    }
-    val launchPicker: () -> Unit = {
-        pickMediaLauncher.launch(PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageAndVideo))
-    }
-
+private fun GalleryTab(galleryItems: List<GalleryItem>) {
     if (galleryItems.isEmpty()) {
         Box(
             modifier = Modifier
@@ -282,36 +399,19 @@ private fun GalleryTab(
                 .padding(24.dp),
             contentAlignment = Alignment.Center
         ) {
-            Column(
-                horizontalAlignment = Alignment.CenterHorizontally,
-                verticalArrangement = Arrangement.spacedBy(12.dp)
-            ) {
-                Text("Sin fotos ni videos todavía", style = MaterialTheme.typography.bodyLarge)
-                OutlinedButton(onClick = launchPicker, modifier = Modifier.testTag("addMediaButton")) {
-                    Text("+ Agregar foto/video")
-                }
-            }
+            Text("Sin fotos ni videos todavía", style = MaterialTheme.typography.bodyLarge)
         }
     } else {
-        Column(
+        LazyVerticalGrid(
+            columns = GridCells.Adaptive(96.dp),
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+            verticalArrangement = Arrangement.spacedBy(8.dp),
             modifier = Modifier
                 .fillMaxSize()
-                .padding(16.dp),
-            verticalArrangement = Arrangement.spacedBy(12.dp)
+                .padding(16.dp)
+                .testTag("galleryGrid"),
         ) {
-            OutlinedButton(onClick = launchPicker, modifier = Modifier.testTag("addMediaButton")) {
-                Text("+ Agregar foto/video")
-            }
-            LazyVerticalGrid(
-                columns = GridCells.Adaptive(96.dp),
-                horizontalArrangement = Arrangement.spacedBy(8.dp),
-                verticalArrangement = Arrangement.spacedBy(8.dp),
-                modifier = Modifier
-                    .fillMaxSize()
-                    .testTag("galleryGrid"),
-            ) {
-                items(galleryItems, key = { it.id }) { item -> GalleryTile(item) }
-            }
+            items(galleryItems, key = { it.id }) { item -> GalleryTile(item) }
         }
     }
 }
@@ -333,6 +433,65 @@ private fun GalleryTile(item: GalleryItem) {
                 contentDescription = null,
                 contentScale = ContentScale.Crop,
                 modifier = Modifier.fillMaxSize(),
+            )
+        }
+    }
+}
+
+@Composable
+private fun HistoryTab(summaries: List<ExerciseHistorySummary>) {
+    if (summaries.isEmpty()) {
+        Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+            Text("Sin historial todavía", style = MaterialTheme.typography.bodyLarge)
+        }
+        return
+    }
+
+    LazyColumn(
+        modifier = Modifier
+            .fillMaxSize()
+            .testTag("historyList"),
+        contentPadding = androidx.compose.foundation.layout.PaddingValues(16.dp)
+    ) {
+        items(summaries, key = { it.exerciseId }) { summary ->
+            HistorySummaryCard(summary)
+            Row(modifier = Modifier.padding(vertical = 12.dp)) { HorizontalDivider() }
+        }
+    }
+}
+
+@Composable
+private fun HistorySummaryCard(summary: ExerciseHistorySummary) {
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .testTag("historySummary_${summary.exerciseId}"),
+        verticalArrangement = Arrangement.spacedBy(4.dp)
+    ) {
+        Text(text = summary.exerciseName, style = MaterialTheme.typography.titleMedium)
+        Text(
+            text = "Máximo: ${summary.maxWeightKg?.let { formatWeight(it) } ?: "-"} kg · Volumen total: ${formatWeight(summary.totalVolumeKg)} kg",
+            style = MaterialTheme.typography.bodyMedium,
+        )
+        summary.recentSessions.forEach { session -> HistorySessionRow(session, note = summary.notesByDate[session.date]) }
+        if (summary.recentSessions.isEmpty()) {
+            Text("Sin series registradas", style = MaterialTheme.typography.bodySmall)
+        }
+    }
+}
+
+@Composable
+private fun HistorySessionRow(session: HistorySession, note: String?) {
+    Column {
+        Text(
+            text = "${session.date} · ${session.setCount} series · ${formatWeight(session.volumeKg)} kg",
+            style = MaterialTheme.typography.bodySmall,
+        )
+        if (!note.isNullOrBlank()) {
+            Text(
+                text = "📝 $note",
+                style = MaterialTheme.typography.bodySmall,
+                modifier = Modifier.testTag("historySessionNote_${session.date}")
             )
         }
     }

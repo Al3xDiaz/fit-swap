@@ -25,4 +25,10 @@ class FakeGalleryRepository @Inject constructor() : GalleryRepository {
             current + (exerciseId to (existing + item))
         }
     }
+
+    override suspend fun deleteMedia(id: String) {
+        itemsByExercise.update { current ->
+            current.mapValues { (_, items) -> items.filterNot { it.id == id } }
+        }
+    }
 }

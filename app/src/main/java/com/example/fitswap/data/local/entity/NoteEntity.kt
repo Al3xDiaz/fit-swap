@@ -5,6 +5,7 @@ import androidx.room.ForeignKey
 import androidx.room.Index
 import androidx.room.PrimaryKey
 import com.example.fitswap.domain.model.Note
+import java.time.LocalDate
 
 @Entity(
     tableName = "notes",
@@ -21,9 +22,10 @@ import com.example.fitswap.domain.model.Note
 data class NoteEntity(
     @PrimaryKey val id: String,
     val exerciseId: String,
+    val date: LocalDate,
     val text: String,
 )
 
-fun NoteEntity.toDomain(): Note = Note(id = id, exerciseId = exerciseId, text = text)
+fun NoteEntity.toDomain(): Note = Note(id = id, exerciseId = exerciseId, date = date, text = text)
 
-fun Note.toEntity(): NoteEntity = NoteEntity(id = id, exerciseId = exerciseId, text = text)
+fun Note.toEntity(): NoteEntity = NoteEntity(id = id, exerciseId = exerciseId, date = date, text = text)

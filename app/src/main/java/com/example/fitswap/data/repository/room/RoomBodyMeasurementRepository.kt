@@ -22,4 +22,8 @@ class RoomBodyMeasurementRepository @Inject constructor(
     override suspend fun addMeasurement(entry: BodyMeasurementEntry) {
         bodyMeasurementDao.insert(entry.toEntity())
     }
+
+    override suspend fun deleteMeasurement(id: String) {
+        bodyMeasurementDao.delete(id)
+    }
 }

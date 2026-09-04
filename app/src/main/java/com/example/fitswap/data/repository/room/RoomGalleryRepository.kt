@@ -20,4 +20,8 @@ class RoomGalleryRepository @Inject constructor(private val galleryDao: GalleryD
         val id = "media-${System.nanoTime()}"
         galleryDao.insert(GalleryItem(id = id, exerciseId = exerciseId, uri = uri, isVideo = isVideo).toEntity())
     }
+
+    override suspend fun deleteMedia(id: String) {
+        galleryDao.delete(id)
+    }
 }

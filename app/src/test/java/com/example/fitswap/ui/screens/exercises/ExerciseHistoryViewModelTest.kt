@@ -4,6 +4,7 @@ import androidx.lifecycle.SavedStateHandle
 import com.example.fitswap.MainDispatcherRule
 import com.example.fitswap.data.repository.fake.FakeExerciseRepository
 import com.example.fitswap.data.repository.fake.FakeHistoryRepository
+import com.example.fitswap.data.repository.fake.FakeNotesRepository
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
@@ -16,6 +17,7 @@ private fun viewModel(exerciseId: String) = ExerciseHistoryViewModel(
     savedStateHandle = SavedStateHandle(mapOf("exerciseId" to exerciseId)),
     exerciseRepository = FakeExerciseRepository(),
     historyRepository = FakeHistoryRepository(),
+    notesRepository = FakeNotesRepository(),
 )
 
 class ExerciseHistoryViewModelTest {

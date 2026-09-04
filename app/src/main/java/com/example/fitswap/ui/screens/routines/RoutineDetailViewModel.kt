@@ -7,6 +7,7 @@ import com.example.fitswap.data.repository.RoutineRepository
 import com.example.fitswap.data.time.CurrentDateProvider
 import com.example.fitswap.domain.model.Routine
 import dagger.hilt.android.lifecycle.HiltViewModel
+import java.time.DayOfWeek
 import javax.inject.Inject
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
@@ -31,6 +32,16 @@ class RoutineDetailViewModel @Inject constructor(
     private val _selectedDayIndex = MutableStateFlow(0)
     val selectedDayIndex: StateFlow<Int> = _selectedDayIndex.asStateFlow()
 
+    /** Día de hoy — fijo por instancia (no reactivo), usado para resaltar "hoy" en la vista de
+     * semana completa y como estado inicial de [selectedWeekDay]. */
+    val todayDayOfWeek: DayOfWeek = currentDateProvider.today().dayOfWeek
+
+    private val _selectedWeekDay = MutableStateFlow(todayDayOfWeek)
+    /** Día de semana elegido en la vista de semana completa (rutinas con días atados a
+     * `dayOfWeek`) — independiente de [selectedDayIndex], que sigue sirviendo para rutinas de
+     * un solo día sin día de semana asignado. */
+    val selectedWeekDay: StateFlow<DayOfWeek> = _selectedWeekDay.asStateFlow()
+
     init {
         viewModelScope.launch {
             val loadedRoutine = routine.first { it != null } ?: return@launch
@@ -42,6 +53,10 @@ class RoutineDetailViewModel @Inject constructor(
         val days = routine.value?.days ?: return
         if (index !in days.indices) return
         _selectedDayIndex.value = index
+    }
+
+    fun selectWeekDay(day: DayOfWeek) {
+        _selectedWeekDay.value = day
     }
 
     fun deleteRoutine() {

@@ -7,6 +7,7 @@ import com.example.fitswap.data.repository.MoveDirection
 import com.example.fitswap.data.repository.RoutineRepository
 import com.example.fitswap.domain.model.Routine
 import dagger.hilt.android.lifecycle.HiltViewModel
+import java.time.DayOfWeek
 import javax.inject.Inject
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -68,10 +69,10 @@ class EditRoutineViewModel @Inject constructor(
         }
     }
 
-    fun addDay(name: String) {
+    fun addDay(name: String, dayOfWeek: DayOfWeek? = null) {
         val id = routineId ?: return
         if (name.isBlank()) return
-        viewModelScope.launch { routineRepository.addDay(id, name.trim()) }
+        viewModelScope.launch { routineRepository.addDay(id, name.trim(), dayOfWeek) }
     }
 
     fun renameDay(dayId: String, newName: String) {

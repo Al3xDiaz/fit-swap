@@ -14,6 +14,7 @@ import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.stateIn
+import kotlinx.coroutines.launch
 
 data class BodyMeasurementRow(
     val entry: BodyMeasurementEntry,
@@ -30,9 +31,13 @@ data class BodyMeasurementsUiState(
 
 @HiltViewModel
 class BodyMeasurementsViewModel @Inject constructor(
-    measurementRepository: BodyMeasurementRepository,
+    private val measurementRepository: BodyMeasurementRepository,
     profileRepository: BodyProfileRepository,
 ) : ViewModel() {
+
+    fun deleteMeasurement(id: String) {
+        viewModelScope.launch { measurementRepository.deleteMeasurement(id) }
+    }
 
     val uiState: StateFlow<BodyMeasurementsUiState> = combine(
         measurementRepository.observeMeasurements(),

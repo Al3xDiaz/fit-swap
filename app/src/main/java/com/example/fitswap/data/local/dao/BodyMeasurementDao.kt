@@ -17,4 +17,7 @@ interface BodyMeasurementDao {
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertAll(entries: List<BodyMeasurementEntity>)
+
+    @Query("DELETE FROM body_measurements WHERE id = :id")
+    suspend fun delete(id: String)
 }
