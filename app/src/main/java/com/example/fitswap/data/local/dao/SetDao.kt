@@ -14,4 +14,7 @@ interface SetDao {
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insert(loggedSet: LoggedSetEntity)
+
+    @Query("DELETE FROM logged_sets WHERE id IN (:ids)")
+    suspend fun deleteByIds(ids: List<String>)
 }

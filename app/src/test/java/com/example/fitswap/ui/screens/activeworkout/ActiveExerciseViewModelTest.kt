@@ -160,10 +160,10 @@ class ActiveExerciseViewModelTest {
         viewModel.uiState.first { !it.isLoading }
 
         // Warmup weight is fixed at registration time (1kg effective * 0.5 factor = 0.5kg).
-        viewModel.registerSet() // warmup
+        viewModel.registerSet() // warmup — se persiste de inmediato con ese peso
         viewModel.onEffectiveWeightInputChanged("100.0")
         repeat(4) { viewModel.registerSet() } // 4 effective, ya con el peso nuevo -> plan completo
-        viewModel.completeExercise() // nada se persiste hasta completar (guardado diferido)
+        viewModel.completeExercise() // ya no persiste nada, solo cierra la sesión
 
         val loggedWarmup = setRepository.observeLoggedSets(ELEVACIONES_ID).first().single { it.type == SetType.WARMUP }
         assertEquals(0.5, loggedWarmup.weightKg, 0.0)
@@ -259,19 +259,19 @@ class ActiveExerciseViewModelTest {
     }
 
     @Test
-    fun `registrar una serie no persiste nada hasta completar el ejercicio entero`() = runTest {
+    fun `registrar una serie la persiste de inmediato sin esperar a completar el ejercicio`() = runTest {
         val historyRepository = FakeHistoryRepository()
         val viewModel = viewModel(ELEVACIONES_ID, historyRepository = historyRepository)
         viewModel.uiState.first { !it.isLoading }
 
-        viewModel.registerSet() // calentamiento — guardado diferido, todavía no se persiste
+        viewModel.registerSet() // calentamiento — se persiste de inmediato, no espera a completar
 
         val history = historyRepository.observeHistory(ExerciseCatalog.elevacionesLaterales.id).first()
-        assertTrue(history.isEmpty())
+        assertEquals(1, history.size)
     }
 
     @Test
-    fun `completar el ejercicio guarda en bloque todos los puntos de historial de la sesion`() = runTest {
+    fun `completar el ejercicio conserva todos los puntos de historial ya persistidos de la sesion`() = runTest {
         val historyRepository = FakeHistoryRepository()
         val viewModel = viewModel(ELEVACIONES_ID, historyRepository = historyRepository)
         viewModel.uiState.first { !it.isLoading }
@@ -286,17 +286,34 @@ class ActiveExerciseViewModelTest {
     }
 
     @Test
-    fun `salir sin completar descarta el progreso sin persistir nada`() = runTest {
+    fun `salir sin completar borra explicitamente el progreso ya persistido de la sesion`() = runTest {
         val historyRepository = FakeHistoryRepository()
         val setRepository = FakeSetRepository()
         val viewModel = viewModel(ELEVACIONES_ID, historyRepository = historyRepository, setRepository = setRepository)
         viewModel.uiState.first { !it.isLoading }
 
-        repeat(3) { viewModel.registerSet() } // progreso parcial, nunca se completa
+        repeat(3) { viewModel.registerSet() } // progreso parcial ya persistido, nunca se completa
         viewModel.endRoutine() // mismo flujo que "Salir del entrenamiento" con confirmación
 
         assertTrue(historyRepository.observeHistory(ExerciseCatalog.elevacionesLaterales.id).first().isEmpty())
         assertTrue(setRepository.observeLoggedSets(ELEVACIONES_ID).first().isEmpty())
+    }
+
+    @Test
+    fun `una serie registrada sobrevive a que se recree el viewmodel sin completar el ejercicio`() = runTest {
+        val setRepository = FakeSetRepository()
+        val firstViewModel = viewModel(ELEVACIONES_ID, setRepository = setRepository)
+        firstViewModel.uiState.first { !it.isLoading }
+        firstViewModel.registerSet() // no se completa el ejercicio ni se sale de la rutina
+
+        // Simula que el proceso murió en background (p. ej. al cancelar el timer de descanso
+        // desde su notificación) y la pantalla se recrea con un ViewModel nuevo para el mismo
+        // ejercicio — la serie ya persistida no debe perderse.
+        val recreatedViewModel = viewModel(ELEVACIONES_ID, setRepository = setRepository)
+        val state = recreatedViewModel.uiState.first { !it.isLoading }
+
+        assertEquals(SetType.EFFECTIVE, state.currentSet?.type)
+        assertEquals(1, state.currentSet?.stageNumber)
     }
 
     @Test

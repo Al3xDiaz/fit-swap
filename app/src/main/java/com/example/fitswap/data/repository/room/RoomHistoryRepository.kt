@@ -29,4 +29,8 @@ class RoomHistoryRepository @Inject constructor(private val historyDao: HistoryD
     override suspend fun replaceAllHistory(points: List<HistoryPoint>) {
         historyDao.replaceAll(points.map { it.toEntity() })
     }
+
+    override suspend fun deleteHistoryPoints(ids: List<String>) {
+        if (ids.isNotEmpty()) historyDao.deleteByIds(ids)
+    }
 }

@@ -38,6 +38,12 @@ class FakeHistoryRepository @Inject constructor() : HistoryRepository {
     override suspend fun replaceAllHistory(points: List<HistoryPoint>) {
         historyByExercise.value = points.groupBy { it.exerciseId }
     }
+
+    override suspend fun deleteHistoryPoints(ids: List<String>) {
+        historyByExercise.update { current ->
+            current.mapValues { (_, points) -> points.filterNot { it.id in ids } }
+        }
+    }
 }
 
 private fun points(

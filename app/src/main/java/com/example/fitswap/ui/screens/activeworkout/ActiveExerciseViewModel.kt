@@ -123,11 +123,13 @@ class ActiveExerciseViewModel @Inject constructor(
     private var galleryJob: Job? = null
     private var completionCountdownJob: Job? = null
 
-    /** Series registradas en memoria, todavía no persistidas — se guardan en bloque recién al
-     * completar el ejercicio entero (ver [completeExercise]); si se sale antes, se descartan
-     * junto con el resto del progreso (mismo mensaje que ya mostraba el diálogo de salida). */
-    private val pendingLoggedSets = mutableListOf<LoggedSet>()
-    private val pendingHistoryPoints = mutableListOf<HistoryPoint>()
+    /** Ids de las series/puntos de historial persistidos en esta sesión de pantalla (ver
+     * [registerSet], que ya los guarda en Room de inmediato — no se espera a completar el
+     * ejercicio, para no perderlos si el proceso muere en background, p. ej. al cancelar el timer
+     * de descanso desde su notificación). Si se sale sin completar, se borran explícitamente por
+     * id (ver [endRoutine]) para conservar el mensaje del diálogo de salida. */
+    private val sessionLoggedSetIds = mutableListOf<String>()
+    private val sessionHistoryPointIds = mutableListOf<String>()
 
     /** Id (slot) del ejercicio anterior/siguiente del día, o nulo si no hay — mismo orden
      * (`RoutineDay.exercises`) que ya usa `SessionMenuViewModel`. Alimentan los botones
@@ -313,16 +315,14 @@ class ActiveExerciseViewModel @Inject constructor(
         val displayExercise = substitutedExercise ?: exercise.exercise
         val seq = loggedSetSeq++
 
-        // No se persiste todavía — se acumula en memoria y recién se guarda en bloque al
-        // completar el ejercicio entero (ver [completeExercise]).
-        pendingLoggedSets += LoggedSet(
+        val loggedSet = LoggedSet(
             id = "${exercise.id}-$seq",
             routineExerciseId = exercise.id,
             type = current.type,
             reps = state.currentReps,
             weightKg = state.currentStageWeightKg,
         )
-        pendingHistoryPoints += HistoryPoint(
+        val historyPoint = HistoryPoint(
             id = "${displayExercise.id}-$seq",
             exerciseId = displayExercise.id,
             date = currentDateProvider.today(),
@@ -330,6 +330,15 @@ class ActiveExerciseViewModel @Inject constructor(
             reps = state.currentReps,
             weightKg = state.currentStageWeightKg,
         )
+        sessionLoggedSetIds += loggedSet.id
+        sessionHistoryPointIds += historyPoint.id
+
+        // Se persiste de inmediato (no se espera a "Completar ejercicio") para no perder la
+        // serie si el proceso muere en background — ver comentario de [sessionLoggedSetIds].
+        viewModelScope.launch {
+            setRepository.logSet(loggedSet)
+            historyRepository.addHistoryPoint(historyPoint)
+        }
 
         planIndex++
         manualStageWeightOverrideKg = null
@@ -350,27 +359,21 @@ class ActiveExerciseViewModel @Inject constructor(
         }
     }
 
-    /** Guarda en bloque todas las series acumuladas de la sesión (sets + historial) y marca a
-     * qué ejercicio avanzar — la pantalla consume [ActiveExerciseUiState.autoAdvanceToExerciseId]
-     * una sola vez y navega (ver [consumeAutoAdvance]). Se puede llamar tanto desde el botón
-     * "Completar ejercicio" como desde el propio countdown al llegar a 0; es seguro llamarla dos
-     * veces (la segunda no encuentra nada pendiente que guardar). */
+    /** Marca el ejercicio como completo y a qué ejercicio avanzar — las series ya se persistieron
+     * una a una en [registerSet], acá solo se cierra la sesión. La pantalla consume
+     * [ActiveExerciseUiState.autoAdvanceToExerciseId] una sola vez y navega (ver
+     * [consumeAutoAdvance]). Se puede llamar tanto desde el botón "Completar ejercicio" como desde
+     * el propio countdown al llegar a 0; es seguro llamarla dos veces (la segunda no encuentra
+     * nada pendiente de esta sesión). */
     fun completeExercise() {
         completionCountdownJob?.cancel()
         completionCountdownJob = null
-        if (pendingLoggedSets.isEmpty() && pendingHistoryPoints.isEmpty()) return
+        if (sessionLoggedSetIds.isEmpty() && sessionHistoryPointIds.isEmpty()) return
 
-        val setsToSave = pendingLoggedSets.toList()
-        val pointsToSave = pendingHistoryPoints.toList()
-        pendingLoggedSets.clear()
-        pendingHistoryPoints.clear()
-
-        viewModelScope.launch {
-            setsToSave.forEach { setRepository.logSet(it) }
-            pointsToSave.forEach { historyRepository.addHistoryPoint(it) }
-            _uiState.update {
-                it.copy(completionCountdownSeconds = null, autoAdvanceToExerciseId = nextRoutineExerciseId)
-            }
+        sessionLoggedSetIds.clear()
+        sessionHistoryPointIds.clear()
+        _uiState.update {
+            it.copy(completionCountdownSeconds = null, autoAdvanceToExerciseId = nextRoutineExerciseId)
         }
     }
 
@@ -389,11 +392,19 @@ class ActiveExerciseViewModel @Inject constructor(
         restTimerController.start(totalSeconds)
     }
 
-    /** Termina la rutina al confirmar la salida (back) — misma semántica que
-     * `SessionMenuViewModel.endRoutine()`: limpia las sustituciones de la sesión, no borra las
-     * series ya registradas. */
+    /** Termina la rutina al confirmar la salida (back): borra explícitamente las series/puntos de
+     * historial persistidos en esta sesión para el ejercicio actual todavía no completado (ver
+     * [registerSet]/[completeExercise]) — cumple el mensaje del diálogo de salida ("se descartará
+     * el progreso de este ejercicio") — y limpia las sustituciones de la sesión, igual que
+     * `SessionMenuViewModel.endRoutine()`. */
     fun endRoutine() {
-        viewModelScope.launch { workoutSessionRepository.clearAll() }
+        viewModelScope.launch {
+            if (sessionLoggedSetIds.isNotEmpty()) setRepository.deleteSets(sessionLoggedSetIds)
+            if (sessionHistoryPointIds.isNotEmpty()) historyRepository.deleteHistoryPoints(sessionHistoryPointIds)
+            sessionLoggedSetIds.clear()
+            sessionHistoryPointIds.clear()
+            workoutSessionRepository.clearAll()
+        }
     }
 
     private fun refreshUiState() {
@@ -429,7 +440,7 @@ class ActiveExerciseViewModel @Inject constructor(
             )
         }
 
-        val hasPendingProgress = pendingLoggedSets.isNotEmpty() || pendingHistoryPoints.isNotEmpty()
+        val hasPendingProgress = sessionLoggedSetIds.isNotEmpty() || sessionHistoryPointIds.isNotEmpty()
         if (current == null && hasPendingProgress) {
             // Solo arranca la cuenta regresiva si hay algo pendiente de esta sesión — si se
             // reabre un ejercicio ya completado antes (nada pendiente), se queda en el mensaje

@@ -23,4 +23,10 @@ class FakeSetRepository @Inject constructor() : SetRepository {
             current + (loggedSet.routineExerciseId to (existing + loggedSet))
         }
     }
+
+    override suspend fun deleteSets(ids: List<String>) {
+        loggedSetsByRoutineExercise.update { current ->
+            current.mapValues { (_, sets) -> sets.filterNot { it.id in ids } }
+        }
+    }
 }

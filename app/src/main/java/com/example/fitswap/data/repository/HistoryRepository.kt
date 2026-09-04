@@ -16,4 +16,8 @@ interface HistoryRepository {
 
     /** Usado por Herramientas (M9) al importar un backup: reemplaza todo el historial. */
     suspend fun replaceAllHistory(points: List<HistoryPoint>)
+
+    /** Borra puntos de historial ya persistidos por id — usado para descartar el progreso de la
+     * sesión en curso cuando el usuario sale del entrenamiento sin completar el ejercicio. */
+    suspend fun deleteHistoryPoints(ids: List<String>)
 }
