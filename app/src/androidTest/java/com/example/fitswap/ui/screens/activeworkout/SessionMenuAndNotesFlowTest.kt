@@ -5,9 +5,14 @@ import androidx.compose.ui.test.junit4.createAndroidComposeRule
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
+import androidx.compose.ui.test.onRoot
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performTextInput
+import androidx.compose.ui.test.performTouchInput
+import androidx.compose.ui.test.swipeLeft
+import androidx.compose.ui.test.swipeRight
 import com.example.fitswap.MainActivity
+import com.example.fitswap.navigation.Destination
 import com.example.fitswap.waitUntilTagExists
 import dagger.hilt.android.testing.HiltAndroidRule
 import dagger.hilt.android.testing.HiltAndroidTest
@@ -82,5 +87,31 @@ class SessionMenuAndNotesFlowTest {
         composeTestRule.onNodeWithTag("sessionMenuItem_default-martes-press-militar-maquina").assertTextEquals(
             "○  Press militar en máquina"
         )
+    }
+
+    @Test
+    fun elMenuDeSesionSeAbreYCierraConGestoDeSwipe() {
+        composeTestRule.onNodeWithTag("routineListItem_default").performClick()
+        composeTestRule.onNodeWithTag("startWorkoutButton_default-martes").performClick()
+        composeTestRule.waitUntilTagExists("registerSetButton")
+
+        composeTestRule.onRoot().performTouchInput { swipeRight() }
+        composeTestRule.waitUntilTagExists("sessionMenuItem_default-martes-press-militar-maquina")
+
+        composeTestRule.onRoot().performTouchInput { swipeLeft() }
+        composeTestRule.waitUntilTagExists("registerSetButton")
+    }
+
+    @Test
+    fun swipeDuranteNotasNoAbreElDrawerDeNavegacion() {
+        composeTestRule.onNodeWithTag("routineListItem_default").performClick()
+        composeTestRule.onNodeWithTag("startWorkoutButton_default-martes").performClick()
+        composeTestRule.waitUntilTagExists("registerSetButton")
+
+        composeTestRule.onNodeWithTag("notesButton").performClick()
+        composeTestRule.waitUntilTagExists("noteInputField")
+
+        composeTestRule.onRoot().performTouchInput { swipeRight() }
+        composeTestRule.onNodeWithTag("drawerItem_${Destination.Routines.route}").assertDoesNotExist()
     }
 }

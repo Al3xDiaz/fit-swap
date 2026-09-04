@@ -16,9 +16,10 @@ import com.example.fitswap.ui.common.MenuNavigationIcon
 import com.example.fitswap.ui.screens.activeworkout.SessionDrawerContent
 import kotlinx.coroutines.launch
 
-/** Rutas del flujo de rutina activa — mientras se está en alguna de estas, el drawer principal
- * (Rutinas/Ejercicios/Config/etc.) queda deshabilitado para no poder "fugarse" de la rutina en
- * curso por swipe o click sin querer (ver [SessionDrawerContent]). */
+/** Rutas del flujo de rutina activa — en Swap/Notas el drawer sigue siendo el de navegación
+ * normal (ver `drawerContent` más abajo), así que ahí el gesto de swipe se bloquea para no poder
+ * "fugarse" de la rutina en curso. En ejercicio activo el drawer pasa a ser [SessionDrawerContent],
+ * así que el gesto es seguro y se deja habilitado. */
 private val ROUTINE_ACTIVE_FLOW_ROUTES = setOf(
     ACTIVE_EXERCISE_ROUTE_PATTERN,
     SWAP_EXERCISE_ROUTE_PATTERN,
@@ -33,10 +34,13 @@ fun AppNavHost(navController: NavHostController = rememberNavController()) {
     val currentDestinationRoute = currentRoute?.destination?.route
     val isActiveExerciseRoute = currentDestinationRoute == ACTIVE_EXERCISE_ROUTE_PATTERN
     val isRoutineActiveFlow = currentDestinationRoute in ROUTINE_ACTIVE_FLOW_ROUTES
+    // Solo bloquea el gesto cuando el drawer que se abriría es el de navegación normal (Swap/
+    // Notas) — en ejercicio activo abre SessionDrawerContent, donde el gesto es seguro.
+    val isLockedNavigationFlow = isRoutineActiveFlow && !isActiveExerciseRoute
 
     ModalNavigationDrawer(
         drawerState = drawerState,
-        gesturesEnabled = !isRoutineActiveFlow,
+        gesturesEnabled = !isLockedNavigationFlow,
         drawerContent = {
             val activeExerciseEntry = currentRoute
             if (isActiveExerciseRoute && activeExerciseEntry != null) {
