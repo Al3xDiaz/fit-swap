@@ -36,9 +36,8 @@ class RoomExerciseRepository @Inject constructor(
         exerciseDao.insert(exercise.toEntity())
     }
 
-    /** [ExerciseDao.insert] usa `OnConflictStrategy.REPLACE` por id, sirve como upsert. */
     override suspend fun updateExercise(exercise: Exercise) {
-        exerciseDao.insert(exercise.toEntity())
+        exerciseDao.update(exercise.toEntity())
     }
 
     override suspend fun deleteExercise(exerciseId: String): Boolean {

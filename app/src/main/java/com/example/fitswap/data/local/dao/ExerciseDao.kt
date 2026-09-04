@@ -4,6 +4,7 @@ import androidx.room.Dao
 import androidx.room.Insert
 import androidx.room.OnConflictStrategy
 import androidx.room.Query
+import androidx.room.Update
 import com.example.fitswap.data.local.entity.ExerciseEntity
 import kotlinx.coroutines.flow.Flow
 
@@ -23,6 +24,12 @@ interface ExerciseDao {
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insert(exercise: ExerciseEntity)
+
+    /** A diferencia de [insert] (usado para altas y seed), no hace un DELETE+INSERT físico —
+     * evita que un `UPDATE` dispare el `ON DELETE CASCADE` de tablas hijas (galería, historial,
+     * etc.) que referencian este id aunque no cambie. */
+    @Update
+    suspend fun update(exercise: ExerciseEntity)
 
     /** Usado para bloquear el borrado de un ejercicio que sigue en uso en alguna rutina. */
     @Query("SELECT COUNT(*) FROM routine_exercises WHERE exerciseId = :exerciseId")
