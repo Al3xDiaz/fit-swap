@@ -19,6 +19,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material3.Button
+import androidx.compose.material3.FilterChip
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.InputChip
@@ -42,6 +43,7 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import coil.compose.AsyncImage
+import com.example.fitswap.domain.model.ExerciseType
 import com.example.fitswap.domain.model.GalleryItem
 import com.example.fitswap.ui.common.AppTopBar
 import com.example.fitswap.ui.common.BackNavigationIcon
@@ -123,6 +125,26 @@ fun ExerciseFormScreen(
                         .fillMaxWidth()
                         .testTag("exerciseEquipmentField")
                 )
+            }
+
+            item {
+                Text("Tipo de ejercicio")
+            }
+            item {
+                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    FilterChip(
+                        selected = uiState.type == ExerciseType.STRENGTH,
+                        onClick = { viewModel.onTypeChanged(ExerciseType.STRENGTH) },
+                        label = { Text("Fuerza") },
+                        modifier = Modifier.testTag("exerciseTypeStrengthChip")
+                    )
+                    FilterChip(
+                        selected = uiState.type == ExerciseType.CARDIO,
+                        onClick = { viewModel.onTypeChanged(ExerciseType.CARDIO) },
+                        label = { Text("Cardio") },
+                        modifier = Modifier.testTag("exerciseTypeCardioChip")
+                    )
+                }
             }
 
             item {

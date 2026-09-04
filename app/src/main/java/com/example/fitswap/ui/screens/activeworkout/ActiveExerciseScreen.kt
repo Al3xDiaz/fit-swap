@@ -61,9 +61,12 @@ import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import coil.compose.AsyncImage
 import com.example.fitswap.domain.logic.HistorySession
+import com.example.fitswap.domain.model.CardioSession
+import com.example.fitswap.domain.model.ExerciseType
 import com.example.fitswap.domain.model.GalleryItem
 import com.example.fitswap.domain.model.PlannedSet
 import com.example.fitswap.domain.model.SetType
+import com.example.fitswap.timer.CardioTimerStatus
 import com.example.fitswap.ui.common.AppTopBar
 import com.example.fitswap.ui.common.ConfirmDialog
 import com.example.fitswap.ui.common.MenuNavigationIcon
@@ -155,24 +158,43 @@ fun ActiveExerciseScreen(
             } else {
                 HorizontalPager(state = pagerState, modifier = Modifier.fillMaxSize()) { page ->
                     when (page) {
-                        0 -> TrainingTab(
-                            uiState = uiState,
-                            onOpenNotes = onOpenNotes,
-                            onEffectiveWeightInputChange = viewModel::onEffectiveWeightInputChanged,
-                            onEffectiveWeightFocusChange = viewModel::onEffectiveWeightFocusChanged,
-                            onStageWeightInputChange = viewModel::onStageWeightInputChanged,
-                            onStageWeightFocusChange = viewModel::onStageWeightFocusChanged,
-                            onIncrementReps = viewModel::incrementReps,
-                            onDecrementReps = viewModel::decrementReps,
-                            onRepsInputChange = viewModel::onRepsInputChanged,
-                            onRepsFocusChange = viewModel::onRepsFocusChanged,
-                            onRegisterSet = viewModel::registerSet,
-                            onCompleteExercise = viewModel::completeExercise,
-                        )
+                        0 -> if (uiState.exerciseType == ExerciseType.CARDIO) {
+                            CardioTab(
+                                uiState = uiState,
+                                onOpenNotes = onOpenNotes,
+                                onStart = viewModel::startCardioTimer,
+                                onPause = viewModel::pauseCardioTimer,
+                                onResume = viewModel::resumeCardioTimer,
+                                onStop = viewModel::stopCardioTimer,
+                                onDistanceChange = viewModel::onDistanceInputChanged,
+                                onHeartRateChange = viewModel::onHeartRateInputChanged,
+                                onCaloriesChange = viewModel::onCaloriesInputChanged,
+                                onCompleteSession = viewModel::completeCardioSession,
+                            )
+                        } else {
+                            TrainingTab(
+                                uiState = uiState,
+                                onOpenNotes = onOpenNotes,
+                                onEffectiveWeightInputChange = viewModel::onEffectiveWeightInputChanged,
+                                onEffectiveWeightFocusChange = viewModel::onEffectiveWeightFocusChanged,
+                                onStageWeightInputChange = viewModel::onStageWeightInputChanged,
+                                onStageWeightFocusChange = viewModel::onStageWeightFocusChanged,
+                                onIncrementReps = viewModel::incrementReps,
+                                onDecrementReps = viewModel::decrementReps,
+                                onRepsInputChange = viewModel::onRepsInputChanged,
+                                onRepsFocusChange = viewModel::onRepsFocusChanged,
+                                onRegisterSet = viewModel::registerSet,
+                                onCompleteExercise = viewModel::completeExercise,
+                            )
+                        }
 
                         1 -> GalleryTab(galleryItems = uiState.galleryItems)
 
-                        else -> HistoryTab(summaries = uiState.historySummaries)
+                        else -> if (uiState.exerciseType == ExerciseType.CARDIO) {
+                            CardioHistoryTab(sessions = uiState.cardioSessions)
+                        } else {
+                            HistoryTab(summaries = uiState.historySummaries)
+                        }
                     }
                 }
             }
@@ -388,6 +410,107 @@ private fun TrainingTab(
     }
 }
 
+/** Registro de una sesión continua de cardio: timer manual (iniciar/pausar/reanudar/detener, a
+ * diferencia del descanso entre series que se auto-inicia) + entrada manual de distancia/ritmo
+ * cardíaco/calorías — sin series ni fases como en [TrainingTab]. */
+@Composable
+private fun CardioTab(
+    uiState: ActiveExerciseUiState,
+    onOpenNotes: () -> Unit,
+    onStart: () -> Unit,
+    onPause: () -> Unit,
+    onResume: () -> Unit,
+    onStop: () -> Unit,
+    onDistanceChange: (String) -> Unit,
+    onHeartRateChange: (String) -> Unit,
+    onCaloriesChange: (String) -> Unit,
+    onCompleteSession: () -> Unit,
+) {
+    val exercise = uiState.exercise
+    val cardio = uiState.cardioUiState ?: CardioUiState()
+
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .padding(16.dp),
+        verticalArrangement = Arrangement.spacedBy(12.dp)
+    ) {
+        if (exercise != null) {
+            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                AssistChip(onClick = {}, label = { Text(exercise.muscleGroup) })
+                AssistChip(onClick = {}, label = { Text(exercise.equipment) })
+                exercise.tags.forEach { tag -> AssistChip(onClick = {}, label = { Text(tag) }) }
+            }
+        }
+
+        Text(
+            text = formatSeconds(cardio.elapsedSeconds),
+            style = MaterialTheme.typography.displayMedium,
+            modifier = Modifier.testTag("cardioElapsedLabel")
+        )
+
+        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            when (cardio.timerState) {
+                CardioTimerStatus.STOPPED -> Button(onClick = onStart, modifier = Modifier.testTag("cardioStartButton")) {
+                    Text("Iniciar")
+                }
+
+                CardioTimerStatus.RUNNING -> {
+                    Button(onClick = onPause, modifier = Modifier.testTag("cardioPauseButton")) { Text("Pausar") }
+                    OutlinedButton(onClick = onStop, modifier = Modifier.testTag("cardioStopButton")) { Text("Detener") }
+                }
+
+                CardioTimerStatus.PAUSED -> {
+                    Button(onClick = onResume, modifier = Modifier.testTag("cardioResumeButton")) { Text("Reanudar") }
+                    OutlinedButton(onClick = onStop, modifier = Modifier.testTag("cardioStopButton")) { Text("Detener") }
+                }
+            }
+        }
+
+        OutlinedTextField(
+            value = cardio.distanceKmInput,
+            onValueChange = onDistanceChange,
+            label = { Text("Distancia (km)") },
+            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
+            modifier = Modifier
+                .fillMaxWidth()
+                .testTag("cardioDistanceField")
+        )
+        OutlinedTextField(
+            value = cardio.avgHeartRateInput,
+            onValueChange = onHeartRateChange,
+            label = { Text("Ritmo cardíaco promedio (bpm)") },
+            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+            modifier = Modifier
+                .fillMaxWidth()
+                .testTag("cardioHeartRateField")
+        )
+        OutlinedTextField(
+            value = cardio.caloriesInput,
+            onValueChange = onCaloriesChange,
+            label = { Text("Calorías") },
+            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+            modifier = Modifier
+                .fillMaxWidth()
+                .testTag("cardioCaloriesField")
+        )
+
+        Button(
+            onClick = onCompleteSession,
+            enabled = cardio.canComplete,
+            modifier = Modifier
+                .fillMaxWidth()
+                .testTag("completeCardioSessionButton")
+        ) {
+            Text("Registrar sesión")
+        }
+
+        OutlinedButton(onClick = onOpenNotes, modifier = Modifier.testTag("notesButton")) {
+            Text("Notas")
+        }
+    }
+}
+
 /** Solo lectura: el alta/baja de fotos y videos se hace desde la pantalla de editar ejercicio
  * (`ExerciseFormScreen`) — acá solo se ven y se aplican al entrenamiento en curso. */
 @Composable
@@ -457,6 +580,50 @@ private fun HistoryTab(summaries: List<ExerciseHistorySummary>) {
             HistorySummaryCard(summary)
             Row(modifier = Modifier.padding(vertical = 12.dp)) { HorizontalDivider() }
         }
+    }
+}
+
+/** Lista cruda de sesiones de cardio pasadas, sin analítica agregada (sin promedios/tendencias —
+ * ver alcance excluido en el plan). */
+@Composable
+private fun CardioHistoryTab(sessions: List<CardioSession>) {
+    if (sessions.isEmpty()) {
+        Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+            Text("Sin sesiones de cardio todavía", style = MaterialTheme.typography.bodyLarge)
+        }
+        return
+    }
+
+    LazyColumn(
+        modifier = Modifier
+            .fillMaxSize()
+            .testTag("cardioHistoryList"),
+        contentPadding = androidx.compose.foundation.layout.PaddingValues(16.dp)
+    ) {
+        items(sessions, key = { it.id }) { session ->
+            CardioSessionRow(session)
+            Row(modifier = Modifier.padding(vertical = 12.dp)) { HorizontalDivider() }
+        }
+    }
+}
+
+@Composable
+private fun CardioSessionRow(session: CardioSession) {
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .testTag("cardioSession_${session.id}"),
+        verticalArrangement = Arrangement.spacedBy(4.dp)
+    ) {
+        Text(text = "${session.date} · ${formatSeconds(session.durationSeconds)}", style = MaterialTheme.typography.titleMedium)
+        Text(
+            text = listOfNotNull(
+                session.distanceKm?.let { "${formatWeight(it)} km" },
+                session.avgHeartRate?.let { "$it bpm" },
+                session.calories?.let { "$it kcal" },
+            ).ifEmpty { listOf("Sin datos adicionales") }.joinToString(" · "),
+            style = MaterialTheme.typography.bodyMedium,
+        )
     }
 }
 

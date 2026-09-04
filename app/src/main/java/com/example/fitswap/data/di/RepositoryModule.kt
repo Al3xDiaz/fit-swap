@@ -2,6 +2,7 @@ package com.example.fitswap.data.di
 
 import com.example.fitswap.data.repository.BodyMeasurementRepository
 import com.example.fitswap.data.repository.BodyProfileRepository
+import com.example.fitswap.data.repository.CardioSessionRepository
 import com.example.fitswap.data.repository.ExerciseRepository
 import com.example.fitswap.data.repository.GalleryRepository
 import com.example.fitswap.data.repository.HistoryRepository
@@ -15,6 +16,7 @@ import com.example.fitswap.data.repository.datastore.DataStoreSettingsRepository
 import com.example.fitswap.data.repository.fake.FakeWorkoutSessionRepository
 import com.example.fitswap.data.repository.room.RoomBodyMeasurementRepository
 import com.example.fitswap.data.repository.room.RoomBodyProfileRepository
+import com.example.fitswap.data.repository.room.RoomCardioSessionRepository
 import com.example.fitswap.data.repository.room.RoomExerciseRepository
 import com.example.fitswap.data.repository.room.RoomGalleryRepository
 import com.example.fitswap.data.repository.room.RoomHistoryRepository
@@ -70,4 +72,7 @@ abstract class RepositoryModule {
 
     @Binds
     abstract fun bindBodyMeasurementRepository(impl: RoomBodyMeasurementRepository): BodyMeasurementRepository
+
+    @Binds
+    abstract fun bindCardioSessionRepository(impl: RoomCardioSessionRepository): CardioSessionRepository
 }

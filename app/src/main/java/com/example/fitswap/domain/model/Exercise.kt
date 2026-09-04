@@ -9,4 +9,5 @@ data class Exercise(
     val muscleGroup: String,
     val equipment: String,
     val tags: List<String> = emptyList(),
+    val type: ExerciseType = ExerciseType.STRENGTH,
 )

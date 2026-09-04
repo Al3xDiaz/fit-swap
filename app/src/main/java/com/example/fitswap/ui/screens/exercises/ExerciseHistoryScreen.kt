@@ -26,6 +26,8 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.example.fitswap.domain.logic.HistorySession
+import com.example.fitswap.domain.model.CardioSession
+import com.example.fitswap.domain.model.ExerciseType
 import com.example.fitswap.ui.common.AppTopBar
 import com.example.fitswap.ui.common.BackNavigationIcon
 
@@ -57,6 +59,34 @@ fun ExerciseHistoryScreen(
                     .padding(innerPadding),
                 contentAlignment = Alignment.Center
             ) { CircularProgressIndicator() }
+
+            uiState.exerciseType == ExerciseType.CARDIO -> if (uiState.cardioSessions.isEmpty()) {
+                Box(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .padding(innerPadding)
+                        .padding(24.dp),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Text(
+                        text = "Sin historial todavía",
+                        style = MaterialTheme.typography.bodyLarge,
+                        modifier = Modifier.testTag("noHistoryLabel")
+                    )
+                }
+            } else {
+                LazyColumn(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .padding(innerPadding)
+                        .padding(16.dp)
+                ) {
+                    items(uiState.cardioSessions, key = { it.id }) { session ->
+                        CardioSessionRow(session)
+                        HorizontalDivider()
+                    }
+                }
+            }
 
             uiState.recentSessions.isEmpty() -> Box(
                 modifier = Modifier
@@ -102,6 +132,26 @@ fun ExerciseHistoryScreen(
                 }
             }
         }
+    }
+}
+
+@Composable
+private fun CardioSessionRow(session: CardioSession) {
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .testTag("cardioSessionRow_${session.date}")
+            .padding(vertical = 8.dp)
+    ) {
+        Text("${session.date} · ${session.durationSeconds / 60}:${"%02d".format(session.durationSeconds % 60)}", style = MaterialTheme.typography.bodyLarge)
+        Text(
+            text = listOfNotNull(
+                session.distanceKm?.let { "${formatWeight(it)} km" },
+                session.avgHeartRate?.let { "$it bpm" },
+                session.calories?.let { "$it kcal" },
+            ).ifEmpty { listOf("Sin datos adicionales") }.joinToString(" · "),
+            style = MaterialTheme.typography.bodyMedium,
+        )
     }
 }
 

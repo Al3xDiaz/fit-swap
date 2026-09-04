@@ -2,6 +2,7 @@ package com.example.fitswap.data.repository.room
 
 import androidx.room.withTransaction
 import com.example.fitswap.data.local.FitSwapDatabase
+import com.example.fitswap.data.local.dao.CardioSessionDao
 import com.example.fitswap.data.local.dao.ExerciseDao
 import com.example.fitswap.data.local.dao.GalleryDao
 import com.example.fitswap.data.local.dao.HistoryDao
@@ -24,6 +25,7 @@ class RoomExerciseRepository @Inject constructor(
     private val historyDao: HistoryDao,
     private val noteDao: NoteDao,
     private val substituteDao: SubstituteDao,
+    private val cardioSessionDao: CardioSessionDao,
 ) : ExerciseRepository {
 
     override fun observeExercises(): Flow<List<Exercise>> =
@@ -47,6 +49,7 @@ class RoomExerciseRepository @Inject constructor(
             historyDao.deleteAllForExercise(exerciseId)
             noteDao.deleteAllForExercise(exerciseId)
             substituteDao.deleteAllForExercise(exerciseId)
+            cardioSessionDao.deleteAllForExercise(exerciseId)
             exerciseDao.delete(exerciseId)
         }
         return true

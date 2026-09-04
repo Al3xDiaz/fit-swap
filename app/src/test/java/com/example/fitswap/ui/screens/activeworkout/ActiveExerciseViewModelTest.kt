@@ -10,6 +10,7 @@ import com.example.fitswap.data.repository.NotesRepository
 import com.example.fitswap.data.repository.SettingsRepository
 import com.example.fitswap.data.repository.WorkoutSessionRepository
 import com.example.fitswap.data.repository.fake.ExerciseCatalog
+import com.example.fitswap.data.repository.fake.FakeCardioSessionRepository
 import com.example.fitswap.data.repository.fake.FakeGalleryRepository
 import com.example.fitswap.data.repository.fake.FakeHistoryRepository
 import com.example.fitswap.data.repository.fake.FakeNotesRepository
@@ -19,12 +20,16 @@ import com.example.fitswap.data.repository.fake.FakeSettingsRepository
 import com.example.fitswap.data.repository.fake.FakeSubstituteRepository
 import com.example.fitswap.data.repository.fake.FakeWorkoutSessionRepository
 import com.example.fitswap.data.time.FixedCurrentDateProvider
+import com.example.fitswap.domain.model.ExerciseType
 import com.example.fitswap.domain.model.SetType
+import com.example.fitswap.timer.CardioTimerStatus
+import com.example.fitswap.timer.FakeCardioTimer
 import com.example.fitswap.timer.FakeRestTimer
 import java.time.DayOfWeek
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
@@ -63,6 +68,7 @@ class ActiveExerciseViewModelTest {
     private fun viewModel(
         exerciseId: String,
         dayId: String = PUSH_DAY_ID,
+        routineRepository: FakeRoutineRepository = FakeRoutineRepository(),
         setRepository: FakeSetRepository = FakeSetRepository(),
         historyRepository: HistoryRepository = FakeHistoryRepository(),
         workoutSessionRepository: WorkoutSessionRepository = FakeWorkoutSessionRepository(),
@@ -70,11 +76,13 @@ class ActiveExerciseViewModelTest {
         galleryRepository: GalleryRepository = FakeGalleryRepository(),
         notesRepository: NotesRepository = FakeNotesRepository(),
         restTimer: FakeRestTimer = FakeRestTimer(),
+        cardioSessionRepository: FakeCardioSessionRepository = FakeCardioSessionRepository(),
+        cardioTimer: FakeCardioTimer = FakeCardioTimer(),
     ) = ActiveExerciseViewModel(
         savedStateHandle = SavedStateHandle(
             mapOf("routineId" to ROUTINE_ID, "dayId" to dayId, "exerciseId" to exerciseId)
         ),
-        routineRepository = FakeRoutineRepository(),
+        routineRepository = routineRepository,
         setRepository = setRepository,
         historyRepository = historyRepository,
         substituteRepository = FakeSubstituteRepository(),
@@ -84,6 +92,8 @@ class ActiveExerciseViewModelTest {
         galleryRepository = galleryRepository,
         notesRepository = notesRepository,
         restTimerController = restTimer,
+        cardioSessionRepository = cardioSessionRepository,
+        cardioTimerController = cardioTimer,
     )
 
     @Test
@@ -338,5 +348,117 @@ class ActiveExerciseViewModelTest {
         val state = viewModel.uiState.first { it.galleryItems.isNotEmpty() }
         assertEquals(1, state.galleryItems.size)
         assertEquals("content://media/1", state.galleryItems.single().uri)
+    }
+
+    /** Agrega "Caminar en cinta" (único ejercicio CARDIO del catálogo) a un día vacío de prueba y
+     * devuelve el id de `RoutineExercise` resultante, listo para pasar como `exerciseId` a
+     * [viewModel]. */
+    private suspend fun cardioExerciseId(routineRepository: FakeRoutineRepository, dayId: String): String {
+        routineRepository.addExerciseToDay(ROUTINE_ID, dayId, ExerciseCatalog.caminarEnCinta.id)
+        return "$dayId-${ExerciseCatalog.caminarEnCinta.id}"
+    }
+
+    @Test
+    fun `un ejercicio de tipo cardio no usa el plan de series de peso`() = runTest {
+        val routineRepository = FakeRoutineRepository()
+        val id = cardioExerciseId(routineRepository, SUNDAY_DAY_ID)
+        val viewModel = viewModel(id, dayId = SUNDAY_DAY_ID, routineRepository = routineRepository)
+
+        val state = viewModel.uiState.first { !it.isLoading }
+
+        assertEquals(ExerciseType.CARDIO, state.exerciseType)
+        assertNull(state.currentSet)
+        assertTrue(state.phases.isEmpty())
+        assertNotNull(state.cardioUiState)
+        assertEquals(CardioTimerStatus.STOPPED, state.cardioUiState?.timerState)
+    }
+
+    @Test
+    fun `iniciar el timer de cardio delega al controller y su estado se refleja en cardioUiState`() = runTest {
+        val routineRepository = FakeRoutineRepository()
+        val id = cardioExerciseId(routineRepository, SUNDAY_DAY_ID)
+        val cardioTimer = FakeCardioTimer()
+        val viewModel = viewModel(id, dayId = SUNDAY_DAY_ID, routineRepository = routineRepository, cardioTimer = cardioTimer)
+        viewModel.uiState.first { !it.isLoading }
+
+        viewModel.startCardioTimer()
+        cardioTimer.advanceTo(42)
+
+        val state = viewModel.uiState.first()
+        assertEquals(CardioTimerStatus.RUNNING, state.cardioUiState?.timerState)
+        assertEquals(42, state.cardioUiState?.elapsedSeconds)
+        assertFalse(state.cardioUiState!!.canComplete)
+    }
+
+    @Test
+    fun `completeCardioSession no hace nada si el timer sigue corriendo`() = runTest {
+        val routineRepository = FakeRoutineRepository()
+        val id = cardioExerciseId(routineRepository, SUNDAY_DAY_ID)
+        val cardioTimer = FakeCardioTimer()
+        val cardioSessionRepository = FakeCardioSessionRepository()
+        val viewModel = viewModel(
+            id, dayId = SUNDAY_DAY_ID, routineRepository = routineRepository,
+            cardioTimer = cardioTimer, cardioSessionRepository = cardioSessionRepository,
+        )
+        viewModel.uiState.first { !it.isLoading }
+        viewModel.startCardioTimer()
+        cardioTimer.advanceTo(30)
+
+        viewModel.completeCardioSession()
+
+        assertTrue(cardioSessionRepository.observeSessions(ExerciseCatalog.caminarEnCinta.id).first().isEmpty())
+    }
+
+    @Test
+    fun `completeCardioSession no hace nada si no transcurrio tiempo`() = runTest {
+        val routineRepository = FakeRoutineRepository()
+        val id = cardioExerciseId(routineRepository, SUNDAY_DAY_ID)
+        val cardioTimer = FakeCardioTimer()
+        val cardioSessionRepository = FakeCardioSessionRepository()
+        val viewModel = viewModel(
+            id, dayId = SUNDAY_DAY_ID, routineRepository = routineRepository,
+            cardioTimer = cardioTimer, cardioSessionRepository = cardioSessionRepository,
+        )
+        viewModel.uiState.first { !it.isLoading }
+        viewModel.startCardioTimer()
+        viewModel.stopCardioTimer()
+
+        viewModel.completeCardioSession()
+
+        assertTrue(cardioSessionRepository.observeSessions(ExerciseCatalog.caminarEnCinta.id).first().isEmpty())
+    }
+
+    @Test
+    fun `completeCardioSession guarda la sesion con los datos ingresados y avanza al siguiente ejercicio`() = runTest {
+        val routineRepository = FakeRoutineRepository()
+        val id = cardioExerciseId(routineRepository, SUNDAY_DAY_ID)
+        val cardioTimer = FakeCardioTimer()
+        val cardioSessionRepository = FakeCardioSessionRepository()
+        val viewModel = viewModel(
+            id, dayId = SUNDAY_DAY_ID, routineRepository = routineRepository,
+            cardioTimer = cardioTimer, cardioSessionRepository = cardioSessionRepository,
+        )
+        viewModel.uiState.first { !it.isLoading }
+
+        viewModel.startCardioTimer()
+        cardioTimer.advanceTo(600)
+        viewModel.onDistanceInputChanged("5.2")
+        viewModel.onHeartRateInputChanged("140")
+        viewModel.onCaloriesInputChanged("300")
+        viewModel.stopCardioTimer()
+        viewModel.completeCardioSession()
+
+        val sessions = cardioSessionRepository.observeSessions(ExerciseCatalog.caminarEnCinta.id).first()
+        assertEquals(1, sessions.size)
+        val session = sessions.single()
+        assertEquals(600, session.durationSeconds)
+        assertEquals(5.2, session.distanceKm)
+        assertEquals(140, session.avgHeartRate)
+        assertEquals(300, session.calories)
+
+        // Se resetea el formulario para poder registrar una sesión nueva de este mismo ejercicio.
+        val state = viewModel.uiState.first()
+        assertEquals(0, state.cardioUiState?.elapsedSeconds)
+        assertEquals("", state.cardioUiState?.distanceKmInput)
     }
 }

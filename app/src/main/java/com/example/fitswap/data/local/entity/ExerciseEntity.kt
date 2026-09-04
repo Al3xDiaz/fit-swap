@@ -4,6 +4,7 @@ import androidx.room.Entity
 import androidx.room.PrimaryKey
 import androidx.room.TypeConverter
 import com.example.fitswap.domain.model.Exercise
+import com.example.fitswap.domain.model.ExerciseType
 
 @Entity(tableName = "exercises")
 data class ExerciseEntity(
@@ -12,6 +13,7 @@ data class ExerciseEntity(
     val muscleGroup: String,
     val equipment: String,
     val tags: List<String>,
+    val type: ExerciseType = ExerciseType.STRENGTH,
 )
 
 fun ExerciseEntity.toDomain(): Exercise = Exercise(
@@ -20,6 +22,7 @@ fun ExerciseEntity.toDomain(): Exercise = Exercise(
     muscleGroup = muscleGroup,
     equipment = equipment,
     tags = tags,
+    type = type,
 )
 
 fun Exercise.toEntity(): ExerciseEntity = ExerciseEntity(
@@ -28,6 +31,7 @@ fun Exercise.toEntity(): ExerciseEntity = ExerciseEntity(
     muscleGroup = muscleGroup,
     equipment = equipment,
     tags = tags,
+    type = type,
 )
 
 /** [Exercise.tags] es casi siempre vacía o de un elemento — se guarda como CSV, no como tabla aparte. */

@@ -1,6 +1,7 @@
 package com.example.fitswap.data.local.entity
 
 import androidx.room.TypeConverter
+import com.example.fitswap.domain.model.ExerciseType
 import com.example.fitswap.domain.model.SetType
 import java.time.LocalDate
 
@@ -10,6 +11,14 @@ class SetTypeConverter {
 
     @TypeConverter
     fun toSetType(name: String): SetType = SetType.valueOf(name)
+}
+
+class ExerciseTypeConverter {
+    @TypeConverter
+    fun fromExerciseType(type: ExerciseType): String = type.name
+
+    @TypeConverter
+    fun toExerciseType(name: String): ExerciseType = ExerciseType.valueOf(name)
 }
 
 class LocalDateConverter {

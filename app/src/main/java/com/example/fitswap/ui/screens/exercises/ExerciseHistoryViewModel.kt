@@ -3,11 +3,14 @@ package com.example.fitswap.ui.screens.exercises
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.example.fitswap.data.repository.CardioSessionRepository
 import com.example.fitswap.data.repository.ExerciseRepository
 import com.example.fitswap.data.repository.HistoryRepository
 import com.example.fitswap.data.repository.NotesRepository
 import com.example.fitswap.domain.logic.ExerciseHistoryAnalytics
 import com.example.fitswap.domain.logic.HistorySession
+import com.example.fitswap.domain.model.CardioSession
+import com.example.fitswap.domain.model.ExerciseType
 import dagger.hilt.android.lifecycle.HiltViewModel
 import java.time.LocalDate
 import javax.inject.Inject
@@ -21,9 +24,11 @@ import kotlinx.coroutines.launch
 data class ExerciseHistoryUiState(
     val isLoading: Boolean = true,
     val exerciseName: String = "",
+    val exerciseType: ExerciseType = ExerciseType.STRENGTH,
     val maxWeightKg: Double? = null,
     val totalVolumeKg: Double = 0.0,
     val recentSessions: List<HistorySession> = emptyList(),
+    val cardioSessions: List<CardioSession> = emptyList(),
     /** Nota de ese día para este ejercicio, si se escribió una (ver [NotesRepository]) —
      * se muestra junto a la sesión correspondiente. */
     val notesByDate: Map<LocalDate, String> = emptyMap(),
@@ -35,6 +40,7 @@ class ExerciseHistoryViewModel @Inject constructor(
     private val exerciseRepository: ExerciseRepository,
     private val historyRepository: HistoryRepository,
     private val notesRepository: NotesRepository,
+    private val cardioSessionRepository: CardioSessionRepository,
 ) : ViewModel() {
 
     private val exerciseId: String = checkNotNull(savedStateHandle["exerciseId"])
@@ -45,6 +51,15 @@ class ExerciseHistoryViewModel @Inject constructor(
     init {
         viewModelScope.launch {
             val exercise = exerciseRepository.getExercise(exerciseId)
+            _uiState.update { it.copy(exerciseName = exercise?.name.orEmpty(), exerciseType = exercise?.type ?: ExerciseType.STRENGTH) }
+
+            if (exercise?.type == ExerciseType.CARDIO) {
+                cardioSessionRepository.observeSessions(exerciseId).collect { sessions ->
+                    _uiState.update { it.copy(isLoading = false, cardioSessions = sessions) }
+                }
+                return@launch
+            }
+
             combine(
                 historyRepository.observeHistory(exerciseId),
                 notesRepository.observeNotes(exerciseId),
@@ -52,7 +67,6 @@ class ExerciseHistoryViewModel @Inject constructor(
                 _uiState.update {
                     it.copy(
                         isLoading = false,
-                        exerciseName = exercise?.name.orEmpty(),
                         maxWeightKg = ExerciseHistoryAnalytics.maxEffectiveWeightKg(points),
                         totalVolumeKg = ExerciseHistoryAnalytics.totalEffectiveVolumeKg(points),
                         recentSessions = ExerciseHistoryAnalytics.recentSessions(points),

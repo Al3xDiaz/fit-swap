@@ -2,6 +2,7 @@ package com.example.fitswap.ui.screens.exercises
 
 import androidx.lifecycle.SavedStateHandle
 import com.example.fitswap.MainDispatcherRule
+import com.example.fitswap.data.repository.fake.FakeCardioSessionRepository
 import com.example.fitswap.data.repository.fake.FakeExerciseRepository
 import com.example.fitswap.data.repository.fake.FakeHistoryRepository
 import com.example.fitswap.data.repository.fake.FakeNotesRepository
@@ -18,6 +19,7 @@ private fun viewModel(exerciseId: String) = ExerciseHistoryViewModel(
     exerciseRepository = FakeExerciseRepository(),
     historyRepository = FakeHistoryRepository(),
     notesRepository = FakeNotesRepository(),
+    cardioSessionRepository = FakeCardioSessionRepository(),
 )
 
 class ExerciseHistoryViewModelTest {

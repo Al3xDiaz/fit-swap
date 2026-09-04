@@ -31,6 +31,7 @@ class RoomExerciseRepositoryTest {
             database.historyDao(),
             database.noteDao(),
             database.substituteDao(),
+            database.cardioSessionDao(),
         )
     }
 

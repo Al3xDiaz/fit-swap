@@ -3,6 +3,7 @@ package com.example.fitswap.ui.screens.activeworkout
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.example.fitswap.data.repository.CardioSessionRepository
 import com.example.fitswap.data.repository.GalleryRepository
 import com.example.fitswap.data.repository.HistoryRepository
 import com.example.fitswap.data.repository.NotesRepository
@@ -15,13 +16,17 @@ import com.example.fitswap.data.time.CurrentDateProvider
 import com.example.fitswap.domain.logic.ExerciseHistoryAnalytics
 import com.example.fitswap.domain.logic.HistorySession
 import com.example.fitswap.domain.logic.SetPlanner
+import com.example.fitswap.domain.model.CardioSession
 import com.example.fitswap.domain.model.Exercise
+import com.example.fitswap.domain.model.ExerciseType
 import com.example.fitswap.domain.model.GalleryItem
 import com.example.fitswap.domain.model.HistoryPoint
 import com.example.fitswap.domain.model.LoggedSet
 import com.example.fitswap.domain.model.PlannedSet
 import com.example.fitswap.domain.model.RoutineExercise
 import com.example.fitswap.domain.model.SetType
+import com.example.fitswap.timer.CardioTimer
+import com.example.fitswap.timer.CardioTimerStatus
 import com.example.fitswap.timer.RestTimer
 import dagger.hilt.android.lifecycle.HiltViewModel
 import java.time.LocalDate
@@ -45,9 +50,27 @@ data class ExerciseHistorySummary(
     val notesByDate: Map<LocalDate, String> = emptyMap(),
 )
 
+/** Estado del timer/formulario de cardio — solo relevante cuando [ActiveExerciseUiState.exerciseType]
+ * es [ExerciseType.CARDIO] (ver `CardioTab`). Distancia/ritmo cardíaco/calorías son de entrada
+ * manual; la duración la da el propio timer. */
+data class CardioUiState(
+    val timerState: CardioTimerStatus = CardioTimerStatus.STOPPED,
+    val elapsedSeconds: Int = 0,
+    val distanceKmInput: String = "",
+    val avgHeartRateInput: String = "",
+    val caloriesInput: String = "",
+) {
+    /** Se puede registrar la sesión una vez que el timer no está corriendo y ya transcurrió algo
+     * de tiempo — mientras está pausado también se puede, sin necesidad de detenerlo antes. */
+    val canComplete: Boolean get() = timerState != CardioTimerStatus.RUNNING && elapsedSeconds > 0
+}
+
 data class ActiveExerciseUiState(
     val isLoading: Boolean = true,
     val exercise: Exercise? = null,
+    val exerciseType: ExerciseType = ExerciseType.STRENGTH,
+    val cardioUiState: CardioUiState? = null,
+    val cardioSessions: List<CardioSession> = emptyList(),
     val phases: List<PhaseStatus> = emptyList(),
     val effectiveWeightKg: Double = 1.0,
     /** Texto tal cual lo tipea el usuario en el campo de peso efectivo — puede estar vacío
@@ -103,6 +126,8 @@ class ActiveExerciseViewModel @Inject constructor(
     private val galleryRepository: GalleryRepository,
     private val notesRepository: NotesRepository,
     private val restTimerController: RestTimer,
+    private val cardioSessionRepository: CardioSessionRepository,
+    private val cardioTimerController: CardioTimer,
 ) : ViewModel() {
 
     private val routineId: String = checkNotNull(savedStateHandle["routineId"])
@@ -146,6 +171,19 @@ class ActiveExerciseViewModel @Inject constructor(
         }
 
         viewModelScope.launch {
+            cardioTimerController.state.collect { timerState ->
+                _uiState.update {
+                    it.copy(
+                        cardioUiState = (it.cardioUiState ?: CardioUiState()).copy(
+                            timerState = timerState.status,
+                            elapsedSeconds = timerState.elapsedSeconds,
+                        )
+                    )
+                }
+            }
+        }
+
+        viewModelScope.launch {
             val routine = routineRepository.observeRoutine(routineId).first { it != null } ?: return@launch
             val day = routine.days.firstOrNull { it.id == dayId } ?: return@launch
             val exercise = day.exercises.firstOrNull { it.id == exerciseId } ?: return@launch
@@ -155,16 +193,43 @@ class ActiveExerciseViewModel @Inject constructor(
             nextRoutineExerciseId = day.exercises.getOrNull(exerciseIndex + 1)?.id
             previousRoutineExerciseId = day.exercises.getOrNull(exerciseIndex - 1)?.id
 
-            val restTimerSeconds = settingsRepository.observeSettings().first().restTimerSeconds
-            plan = SetPlanner.buildPlan(exercise, restTimerSeconds)
+            // El plan de series (warmup/approach/effective) solo aplica a peso — un ejercicio de
+            // cardio se resuelve enteramente dentro del `collect` de abajo, sin `SetPlanner`.
+            if (exercise.exercise.type == ExerciseType.STRENGTH) {
+                val restTimerSeconds = settingsRepository.observeSettings().first().restTimerSeconds
+                plan = SetPlanner.buildPlan(exercise, restTimerSeconds)
 
-            val existingLogged = setRepository.observeLoggedSets(exercise.id).first()
-            planIndex = existingLogged.size.coerceAtMost(plan.size)
-            loggedSetSeq = existingLogged.size
+                val existingLogged = setRepository.observeLoggedSets(exercise.id).first()
+                planIndex = existingLogged.size.coerceAtMost(plan.size)
+                loggedSetSeq = existingLogged.size
+            }
 
             workoutSessionRepository.observeSubstitution(exercise.id).collect { substitution ->
                 substitutedExercise = substitution
                 val activeExercise = substitution ?: exercise.exercise
+                _uiState.update { it.copy(exerciseType = activeExercise.type) }
+
+                if (activeExercise.type == ExerciseType.CARDIO) {
+                    _uiState.update {
+                        it.copy(
+                            isLoading = false,
+                            exercise = activeExercise,
+                            previousExerciseId = previousRoutineExerciseId,
+                            nextExerciseId = nextRoutineExerciseId,
+                            cardioUiState = it.cardioUiState ?: CardioUiState(),
+                        )
+                    }
+                    loadCardioSessions(activeExercise)
+
+                    galleryJob?.cancel()
+                    galleryJob = viewModelScope.launch {
+                        galleryRepository.observeGallery(activeExercise.id).collect { items ->
+                            _uiState.update { it.copy(galleryItems = items) }
+                        }
+                    }
+                    return@collect
+                }
+
                 val lastWeight = resolveSuggestedWeight(activeExercise)
                 effectiveWeightKg = SetPlanner.suggestedEffectiveWeight(lastWeight)
                 manualStageWeightOverrideKg = null
@@ -219,6 +284,66 @@ class ActiveExerciseViewModel @Inject constructor(
                     )
                 }
             }.collect { summaries -> _uiState.update { it.copy(historySummaries = summaries) } }
+        }
+    }
+
+    /** Historial de sesiones de cardio del ejercicio activo — sin analítica agregada, solo la
+     * lista cruda (ver alcance excluido en el plan: sin promedios/tendencias). Reutiliza
+     * [historyJob] porque, para un mismo ViewModel, solo uno de los dos flujos (peso o cardio)
+     * está activo a la vez según [ActiveExerciseUiState.exerciseType]. */
+    private fun loadCardioSessions(activeExercise: Exercise) {
+        historyJob?.cancel()
+        historyJob = viewModelScope.launch {
+            cardioSessionRepository.observeSessions(activeExercise.id).collect { sessions ->
+                _uiState.update { it.copy(cardioSessions = sessions) }
+            }
+        }
+    }
+
+    fun startCardioTimer() = cardioTimerController.start()
+    fun pauseCardioTimer() = cardioTimerController.pause()
+    fun resumeCardioTimer() = cardioTimerController.resume()
+    fun stopCardioTimer() = cardioTimerController.stop()
+
+    fun onDistanceInputChanged(text: String) {
+        _uiState.update { it.copy(cardioUiState = (it.cardioUiState ?: CardioUiState()).copy(distanceKmInput = text)) }
+    }
+
+    fun onHeartRateInputChanged(text: String) {
+        _uiState.update {
+            it.copy(cardioUiState = (it.cardioUiState ?: CardioUiState()).copy(avgHeartRateInput = text))
+        }
+    }
+
+    fun onCaloriesInputChanged(text: String) {
+        _uiState.update { it.copy(cardioUiState = (it.cardioUiState ?: CardioUiState()).copy(caloriesInput = text)) }
+    }
+
+    /** Guarda la sesión de cardio completa (duración la da el timer; distancia/ritmo/calorías
+     * quedan `null` si el usuario no las completó) y avanza al siguiente ejercicio, igual que
+     * [completeExercise] para el flujo de peso. Detiene el timer solo si seguía corriendo/pausado
+     * — llamar `stop()` sobre un timer ya detenido reinicia el foreground service sin que este
+     * llegue a llamar `startForeground()`, lo cual crashea. */
+    fun completeCardioSession() {
+        val exercise = routineExercise ?: return
+        val cardio = _uiState.value.cardioUiState ?: return
+        if (!cardio.canComplete) return
+        val displayExercise = substitutedExercise ?: exercise.exercise
+        if (cardio.timerState != CardioTimerStatus.STOPPED) cardioTimerController.stop()
+
+        viewModelScope.launch {
+            cardioSessionRepository.addSession(
+                CardioSession(
+                    id = "${displayExercise.id}-${loggedSetSeq++}",
+                    exerciseId = displayExercise.id,
+                    date = currentDateProvider.today(),
+                    durationSeconds = cardio.elapsedSeconds,
+                    distanceKm = cardio.distanceKmInput.toDoubleOrNull(),
+                    avgHeartRate = cardio.avgHeartRateInput.toIntOrNull(),
+                    calories = cardio.caloriesInput.toIntOrNull(),
+                )
+            )
+            _uiState.update { it.copy(cardioUiState = CardioUiState(), autoAdvanceToExerciseId = nextRoutineExerciseId) }
         }
     }
 

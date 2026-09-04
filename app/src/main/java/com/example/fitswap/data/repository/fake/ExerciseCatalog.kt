@@ -1,6 +1,7 @@
 package com.example.fitswap.data.repository.fake
 
 import com.example.fitswap.domain.model.Exercise
+import com.example.fitswap.domain.model.ExerciseType
 
 /**
  * Catálogo compartido de ejercicios, sembrado 1:1 desde `rutina_semanal_optimizada.md` (ver
@@ -41,7 +42,10 @@ object ExerciseCatalog {
 
     // Ejercicio base de calentamiento/cardio (docs/PRD.md, primera alternativa del catálogo en el
     // boceto de docs/DIAGRAMS.md) — no aparece en ningún día de la rutina por defecto.
-    val caminarEnCinta = Exercise("caminar-en-cinta", "Caminar en cinta", "Cardio", "Cinta", tags = listOf("calentamiento"))
+    val caminarEnCinta = Exercise(
+        "caminar-en-cinta", "Caminar en cinta", "Cardio", "Cinta",
+        tags = listOf("calentamiento"), type = ExerciseType.CARDIO,
+    )
 
     val allExercises: List<Exercise> = listOf(
         caminarEnCinta,

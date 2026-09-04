@@ -5,6 +5,7 @@ import androidx.room.RoomDatabase
 import androidx.room.TypeConverters
 import com.example.fitswap.data.local.dao.BodyMeasurementDao
 import com.example.fitswap.data.local.dao.BodyProfileDao
+import com.example.fitswap.data.local.dao.CardioSessionDao
 import com.example.fitswap.data.local.dao.ExerciseDao
 import com.example.fitswap.data.local.dao.GalleryDao
 import com.example.fitswap.data.local.dao.HistoryDao
@@ -14,7 +15,9 @@ import com.example.fitswap.data.local.dao.SetDao
 import com.example.fitswap.data.local.dao.SubstituteDao
 import com.example.fitswap.data.local.entity.BodyMeasurementEntity
 import com.example.fitswap.data.local.entity.BodyProfileEntity
+import com.example.fitswap.data.local.entity.CardioSessionEntity
 import com.example.fitswap.data.local.entity.ExerciseEntity
+import com.example.fitswap.data.local.entity.ExerciseTypeConverter
 import com.example.fitswap.data.local.entity.GalleryItemEntity
 import com.example.fitswap.data.local.entity.HistoryPointEntity
 import com.example.fitswap.data.local.entity.LocalDateConverter
@@ -40,13 +43,19 @@ import com.example.fitswap.data.local.entity.SubstituteLinkEntity
         GalleryItemEntity::class,
         BodyMeasurementEntity::class,
         BodyProfileEntity::class,
+        CardioSessionEntity::class,
     ],
-    // v2 (M14): agrega body_measurements/body_profile. Sin migración porque todavía no hay
-    // usuarios reales — ver `fallbackToDestructiveMigration()` en DatabaseModule.
-    version = 2,
+    // v3: agrega Exercise.type (STRENGTH/CARDIO) y cardio_sessions. Sin migración porque todavía
+    // no hay usuarios reales — ver `fallbackToDestructiveMigration()` en DatabaseModule.
+    version = 3,
     exportSchema = false,
 )
-@TypeConverters(StringListConverter::class, SetTypeConverter::class, LocalDateConverter::class)
+@TypeConverters(
+    StringListConverter::class,
+    SetTypeConverter::class,
+    LocalDateConverter::class,
+    ExerciseTypeConverter::class,
+)
 abstract class FitSwapDatabase : RoomDatabase() {
     abstract fun exerciseDao(): ExerciseDao
     abstract fun routineDao(): RoutineDao
@@ -57,4 +66,5 @@ abstract class FitSwapDatabase : RoomDatabase() {
     abstract fun galleryDao(): GalleryDao
     abstract fun bodyMeasurementDao(): BodyMeasurementDao
     abstract fun bodyProfileDao(): BodyProfileDao
+    abstract fun cardioSessionDao(): CardioSessionDao
 }

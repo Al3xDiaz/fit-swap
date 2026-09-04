@@ -6,6 +6,7 @@ import androidx.lifecycle.viewModelScope
 import com.example.fitswap.data.repository.ExerciseRepository
 import com.example.fitswap.data.repository.GalleryRepository
 import com.example.fitswap.domain.model.Exercise
+import com.example.fitswap.domain.model.ExerciseType
 import com.example.fitswap.domain.model.GalleryItem
 import dagger.hilt.android.lifecycle.HiltViewModel
 import javax.inject.Inject
@@ -28,6 +29,7 @@ data class ExerciseFormUiState(
     val name: String = "",
     val muscleGroup: String = "",
     val equipment: String = "",
+    val type: ExerciseType = ExerciseType.STRENGTH,
     val tags: List<String> = emptyList(),
     val newTagText: String = "",
 ) {
@@ -65,6 +67,7 @@ class ExerciseFormViewModel @Inject constructor(
                         name = exercise?.name.orEmpty(),
                         muscleGroup = exercise?.muscleGroup.orEmpty(),
                         equipment = exercise?.equipment.orEmpty(),
+                        type = exercise?.type ?: ExerciseType.STRENGTH,
                         tags = exercise?.tags.orEmpty(),
                     )
                 }
@@ -82,6 +85,10 @@ class ExerciseFormViewModel @Inject constructor(
 
     fun onEquipmentChanged(value: String) {
         _uiState.update { it.copy(equipment = value) }
+    }
+
+    fun onTypeChanged(type: ExerciseType) {
+        _uiState.update { it.copy(type = type) }
     }
 
     fun onNewTagTextChanged(value: String) {
@@ -109,6 +116,7 @@ class ExerciseFormViewModel @Inject constructor(
             muscleGroup = state.muscleGroup.trim(),
             equipment = state.equipment.trim(),
             tags = state.tags,
+            type = state.type,
         )
         if (state.isNew) exerciseRepository.addExercise(exercise) else exerciseRepository.updateExercise(exercise)
         return true

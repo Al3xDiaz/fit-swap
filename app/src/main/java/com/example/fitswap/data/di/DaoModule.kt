@@ -3,6 +3,7 @@ package com.example.fitswap.data.di
 import com.example.fitswap.data.local.FitSwapDatabase
 import com.example.fitswap.data.local.dao.BodyMeasurementDao
 import com.example.fitswap.data.local.dao.BodyProfileDao
+import com.example.fitswap.data.local.dao.CardioSessionDao
 import com.example.fitswap.data.local.dao.ExerciseDao
 import com.example.fitswap.data.local.dao.GalleryDao
 import com.example.fitswap.data.local.dao.HistoryDao
@@ -46,4 +47,7 @@ object DaoModule {
 
     @Provides
     fun provideBodyProfileDao(database: FitSwapDatabase): BodyProfileDao = database.bodyProfileDao()
+
+    @Provides
+    fun provideCardioSessionDao(database: FitSwapDatabase): CardioSessionDao = database.cardioSessionDao()
 }
