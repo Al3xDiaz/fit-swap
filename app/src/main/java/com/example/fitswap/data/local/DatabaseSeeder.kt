@@ -27,7 +27,10 @@ import javax.inject.Singleton
 class DatabaseSeeder @Inject constructor(private val database: FitSwapDatabase) {
 
     suspend fun seedIfNeeded() {
-        if (database.exerciseDao().count() > 0) return
+        if (database.exerciseDao().count() > 0) {
+            syncCatalog()
+            return
+        }
 
         database.exerciseDao().insertAll(ExerciseCatalog.allExercises.map { it.toEntity() })
 
@@ -53,5 +56,20 @@ class DatabaseSeeder @Inject constructor(private val database: FitSwapDatabase) 
         database.historyDao().insertAll(buildHistorySeed().values.flatten().map { it.toEntity() })
 
         database.bodyMeasurementDao().insertAll(seedMeasurements().map { it.toEntity() })
+    }
+
+    /**
+     * Corre en cada arranque para instalaciones ya sembradas: inserta solo los ejercicios de
+     * [ExerciseCatalog.allExercises] cuyo id todavía no está en la tabla `exercises`, sin tocar los
+     * existentes (nunca pisa ediciones del usuario). Necesario porque `seedIfNeeded` solo siembra
+     * una vez — sin esto, un ejercicio agregado al catálogo después del lanzamiento nunca llegaría
+     * a una instalación existente.
+     */
+    private suspend fun syncCatalog() {
+        val existingIds = database.exerciseDao().allIds().toSet()
+        val newExercises = ExerciseCatalog.allExercises.filterNot { it.id in existingIds }
+        if (newExercises.isNotEmpty()) {
+            database.exerciseDao().insertAll(newExercises.map { it.toEntity() })
+        }
     }
 }

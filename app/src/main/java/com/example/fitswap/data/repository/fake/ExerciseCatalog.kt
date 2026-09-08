@@ -47,8 +47,25 @@ object ExerciseCatalog {
         tags = listOf("calentamiento"), type = ExerciseType.CARDIO,
     )
 
+    val eliptica = Exercise(
+        "eliptica", "Elíptica", "Cardio", "Elíptica",
+        tags = listOf("calentamiento"), type = ExerciseType.CARDIO,
+    )
+    val remoMaquina = Exercise(
+        "remo-maquina", "Remo (máquina)", "Cardio", "Remadora",
+        tags = listOf("calentamiento"), type = ExerciseType.CARDIO,
+    )
+    val escaladora = Exercise(
+        "escaladora", "Escaladora", "Cardio", "Escaladora",
+        type = ExerciseType.CARDIO,
+    )
+    val bicicletaEstatica = Exercise(
+        "bicicleta-estatica", "Bicicleta estática", "Cardio", "Bicicleta",
+        tags = listOf("calentamiento"), type = ExerciseType.CARDIO,
+    )
+
     val allExercises: List<Exercise> = listOf(
-        caminarEnCinta,
+        caminarEnCinta, eliptica, remoMaquina, escaladora, bicicletaEstatica,
         elevacionesLaterales, pressMilitarMaquina, pressDePecho, aperturasDePecho, fondosParaTriceps,
         extensionTricepsCuerda, extensionTricepsOverhead, jalonAlPechoDominadas, remoConBarraOMancuerna,
         remoChestSupported, facePulls, curlBicepsBarra, curlMartillo, wristCurls, sentadillaHackSquatPrensa,

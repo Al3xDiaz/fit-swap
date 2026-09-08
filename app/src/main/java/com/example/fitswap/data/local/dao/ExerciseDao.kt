@@ -19,6 +19,11 @@ interface ExerciseDao {
     @Query("SELECT COUNT(*) FROM exercises")
     suspend fun count(): Int
 
+    /** Usado por `DatabaseSeeder` para sincronizar el catálogo en cada arranque sin pisar
+     * ejercicios existentes (ver `syncCatalog`). */
+    @Query("SELECT id FROM exercises")
+    suspend fun allIds(): List<String>
+
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertAll(exercises: List<ExerciseEntity>)
 
