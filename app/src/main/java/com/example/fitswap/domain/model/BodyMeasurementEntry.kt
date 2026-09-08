@@ -21,4 +21,8 @@ data class BodyMeasurementEntry(
     val armCm: Double? = null,
     val legCm: Double? = null,
     val calfCm: Double? = null,
+    val gluteCm: Double? = null,
+    val forearmCm: Double? = null,
+    val shoulderCm: Double? = null,
+    val wristCm: Double? = null,
 )

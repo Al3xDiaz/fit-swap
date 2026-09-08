@@ -37,6 +37,7 @@ class BodyMeasurementDaoTest {
             BodyMeasurementEntity(
                 id = "m1", date = LocalDate.of(2026, 9, 2), weightKg = 80.0,
                 neckCm = 38.0, waistCm = 85.0, hipCm = null, chestCm = null, armCm = null, legCm = null, calfCm = null,
+                gluteCm = null, forearmCm = null, shoulderCm = null, wristCm = null,
             )
         )
 
@@ -46,6 +47,24 @@ class BodyMeasurementDaoTest {
         assertEquals(80.0, measurements.single().weightKg, 0.0)
         assertEquals(38.0, measurements.single().neckCm)
         assertNull(measurements.single().hipCm)
+    }
+
+    @Test
+    fun elGluteoAntebrazoHombroYMunecaHacenRoundTrip() = runBlocking {
+        database.bodyMeasurementDao().insert(
+            BodyMeasurementEntity(
+                id = "m2", date = LocalDate.of(2026, 9, 3), weightKg = 80.0,
+                neckCm = null, waistCm = null, hipCm = null, chestCm = null, armCm = null, legCm = null, calfCm = null,
+                gluteCm = 98.0, forearmCm = 27.0, shoulderCm = 112.0, wristCm = 16.5,
+            )
+        )
+
+        val measurement = database.bodyMeasurementDao().observeMeasurements().first().single()
+
+        assertEquals(98.0, measurement.gluteCm)
+        assertEquals(27.0, measurement.forearmCm)
+        assertEquals(112.0, measurement.shoulderCm)
+        assertEquals(16.5, measurement.wristCm)
     }
 
     @Test

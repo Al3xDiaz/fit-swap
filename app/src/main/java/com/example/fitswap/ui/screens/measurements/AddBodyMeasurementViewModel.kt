@@ -21,6 +21,10 @@ data class AddBodyMeasurementUiState(
     val armCm: String = "",
     val legCm: String = "",
     val calfCm: String = "",
+    val gluteCm: String = "",
+    val forearmCm: String = "",
+    val shoulderCm: String = "",
+    val wristCm: String = "",
 ) {
     val canSave: Boolean get() = weightKg.toDoubleOrNull() != null
 }
@@ -68,6 +72,22 @@ class AddBodyMeasurementViewModel @Inject constructor(
         _uiState.update { it.copy(calfCm = value) }
     }
 
+    fun onGluteChanged(value: String) {
+        _uiState.update { it.copy(gluteCm = value) }
+    }
+
+    fun onForearmChanged(value: String) {
+        _uiState.update { it.copy(forearmCm = value) }
+    }
+
+    fun onShoulderChanged(value: String) {
+        _uiState.update { it.copy(shoulderCm = value) }
+    }
+
+    fun onWristChanged(value: String) {
+        _uiState.update { it.copy(wristCm = value) }
+    }
+
     /** Devuelve `false` sin persistir nada si falta el único campo obligatorio (peso). */
     suspend fun save(): Boolean {
         val state = _uiState.value
@@ -85,6 +105,10 @@ class AddBodyMeasurementViewModel @Inject constructor(
                 armCm = state.armCm.toDoubleOrNull(),
                 legCm = state.legCm.toDoubleOrNull(),
                 calfCm = state.calfCm.toDoubleOrNull(),
+                gluteCm = state.gluteCm.toDoubleOrNull(),
+                forearmCm = state.forearmCm.toDoubleOrNull(),
+                shoulderCm = state.shoulderCm.toDoubleOrNull(),
+                wristCm = state.wristCm.toDoubleOrNull(),
             )
         )
         return true

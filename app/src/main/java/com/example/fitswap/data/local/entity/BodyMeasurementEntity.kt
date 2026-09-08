@@ -17,6 +17,10 @@ data class BodyMeasurementEntity(
     val armCm: Double?,
     val legCm: Double?,
     val calfCm: Double?,
+    val gluteCm: Double?,
+    val forearmCm: Double?,
+    val shoulderCm: Double?,
+    val wristCm: Double?,
 )
 
 fun BodyMeasurementEntity.toDomain(): BodyMeasurementEntry = BodyMeasurementEntry(
@@ -30,6 +34,10 @@ fun BodyMeasurementEntity.toDomain(): BodyMeasurementEntry = BodyMeasurementEntr
     armCm = armCm,
     legCm = legCm,
     calfCm = calfCm,
+    gluteCm = gluteCm,
+    forearmCm = forearmCm,
+    shoulderCm = shoulderCm,
+    wristCm = wristCm,
 )
 
 fun BodyMeasurementEntry.toEntity(): BodyMeasurementEntity = BodyMeasurementEntity(
@@ -43,4 +51,8 @@ fun BodyMeasurementEntry.toEntity(): BodyMeasurementEntity = BodyMeasurementEnti
     armCm = armCm,
     legCm = legCm,
     calfCm = calfCm,
+    gluteCm = gluteCm,
+    forearmCm = forearmCm,
+    shoulderCm = shoulderCm,
+    wristCm = wristCm,
 )

@@ -65,4 +65,25 @@ class AddBodyMeasurementViewModelTest {
         assertEquals(85.0, entry.waistCm)
         assertEquals(LocalDate.of(2026, 9, 2), entry.date)
     }
+
+    @Test
+    fun `guardar persiste gluteo antebrazo hombro y muneca`() = runTest {
+        val measurementRepository = FakeBodyMeasurementRepository()
+        val viewModel = viewModel(measurementRepository)
+
+        viewModel.onWeightChanged("80.5")
+        viewModel.onGluteChanged("98")
+        viewModel.onForearmChanged("27")
+        viewModel.onShoulderChanged("112")
+        viewModel.onWristChanged("16.5")
+
+        val saved = viewModel.save()
+
+        assertTrue(saved)
+        val entry = measurementRepository.observeMeasurements().first().first()
+        assertEquals(98.0, entry.gluteCm)
+        assertEquals(27.0, entry.forearmCm)
+        assertEquals(112.0, entry.shoulderCm)
+        assertEquals(16.5, entry.wristCm)
+    }
 }

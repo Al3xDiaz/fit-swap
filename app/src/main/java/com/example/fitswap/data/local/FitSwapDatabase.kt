@@ -45,9 +45,10 @@ import com.example.fitswap.data.local.entity.SubstituteLinkEntity
         BodyProfileEntity::class,
         CardioSessionEntity::class,
     ],
-    // v3: agrega Exercise.type (STRENGTH/CARDIO) y cardio_sessions. Sin migración porque todavía
+    // v3: agrega Exercise.type (STRENGTH/CARDIO) y cardio_sessions.
+    // v4: agrega glúteo/antebrazo/hombro/muñeca a body_measurements. Sin migración porque todavía
     // no hay usuarios reales — ver `fallbackToDestructiveMigration()` en DatabaseModule.
-    version = 3,
+    version = 4,
     exportSchema = false,
 )
 @TypeConverters(

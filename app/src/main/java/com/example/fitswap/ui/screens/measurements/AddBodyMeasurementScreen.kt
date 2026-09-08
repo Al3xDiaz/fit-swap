@@ -108,6 +108,34 @@ fun AddBodyMeasurementScreen(
                 keyboardOptions = decimalKeyboard,
                 modifier = Modifier.testTag("calfField")
             )
+            OutlinedTextField(
+                value = uiState.gluteCm,
+                onValueChange = viewModel::onGluteChanged,
+                label = { Text("Glúteo (cm, opcional)") },
+                keyboardOptions = decimalKeyboard,
+                modifier = Modifier.testTag("gluteField")
+            )
+            OutlinedTextField(
+                value = uiState.forearmCm,
+                onValueChange = viewModel::onForearmChanged,
+                label = { Text("Antebrazo (cm, opcional)") },
+                keyboardOptions = decimalKeyboard,
+                modifier = Modifier.testTag("forearmField")
+            )
+            OutlinedTextField(
+                value = uiState.shoulderCm,
+                onValueChange = viewModel::onShoulderChanged,
+                label = { Text("Hombro (cm, opcional)") },
+                keyboardOptions = decimalKeyboard,
+                modifier = Modifier.testTag("shoulderField")
+            )
+            OutlinedTextField(
+                value = uiState.wristCm,
+                onValueChange = viewModel::onWristChanged,
+                label = { Text("Muñeca (cm, opcional)") },
+                keyboardOptions = decimalKeyboard,
+                modifier = Modifier.testTag("wristField")
+            )
 
             Button(
                 onClick = {
