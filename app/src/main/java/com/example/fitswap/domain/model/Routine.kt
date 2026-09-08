@@ -26,6 +26,20 @@ data class RoutineDay(
     val dayOfWeek: DayOfWeek? = null,
 )
 
+/**
+ * Label a mostrar en la UI: combina el día de la semana con el nombre descriptivo del día
+ * (ej. "Martes — Push"), evitando repetirlo si coinciden (ej. cuando `name` quedó autocompletado
+ * con el label del día al crearlo) o si no hay `dayOfWeek` (rutinas de un solo día).
+ */
+fun RoutineDay.displayLabel(): String {
+    val weekday = dayOfWeek?.toSpanishLabel()
+    return when {
+        weekday == null -> name
+        name.isBlank() || name == weekday -> weekday
+        else -> "$weekday — $name"
+    }
+}
+
 @Serializable
 data class Routine(
     val id: String,

@@ -40,9 +40,11 @@ class EditRoutineFlowTest {
         composeTestRule.onNodeWithTag("appTopBarTitle").assertTextEquals("Rutina de prueba")
 
         // Agregar un día.
+        composeTestRule.onNodeWithTag("newDayOfWeekField").performClick()
+        composeTestRule.onNodeWithTag("dayOfWeekOption_MONDAY").performClick()
         composeTestRule.onNodeWithTag("newDayNameField").performTextInput("Día A")
         composeTestRule.onNodeWithTag("addDayButton").performClick()
-        composeTestRule.onNodeWithTag("dayName_routine-0-dia-0").assertTextEquals("Día A")
+        composeTestRule.onNodeWithTag("dayName_routine-0-dia-0").assertTextEquals("Lunes — Día A")
 
         // Agregar un ejercicio desde el catálogo (modo elegir).
         composeTestRule.onNodeWithTag("addExerciseButton_routine-0-dia-0").performClick()
@@ -56,7 +58,7 @@ class EditRoutineFlowTest {
         composeTestRule.onNodeWithTag("dayNameField_routine-0-dia-0").performTextClearance()
         composeTestRule.onNodeWithTag("dayNameField_routine-0-dia-0").performTextInput("Día renombrado")
         composeTestRule.onNodeWithTag("confirmRenameDayButton_routine-0-dia-0").performClick()
-        composeTestRule.onNodeWithTag("dayName_routine-0-dia-0").assertTextEquals("Día renombrado")
+        composeTestRule.onNodeWithTag("dayName_routine-0-dia-0").assertTextEquals("Lunes — Día renombrado")
 
         // Quitar el ejercicio agregado.
         composeTestRule.onNodeWithTag("removeExerciseButton_routine-0-dia-0-caminar-en-cinta").performClick()

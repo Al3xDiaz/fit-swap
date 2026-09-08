@@ -38,6 +38,7 @@ import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.example.fitswap.domain.model.RoutineDay
 import com.example.fitswap.domain.model.WEEK_DAYS_ES
+import com.example.fitswap.domain.model.displayLabel
 import com.example.fitswap.domain.model.toSpanishLabel
 import com.example.fitswap.ui.common.AppTopBar
 import com.example.fitswap.ui.common.BackNavigationIcon
@@ -177,7 +178,7 @@ private fun RoutineDaySection(
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     Text(
-                        text = day.name,
+                        text = day.displayLabel(),
                         style = MaterialTheme.typography.titleLarge,
                         modifier = Modifier.testTag("currentDayLabel")
                     )
@@ -185,7 +186,7 @@ private fun RoutineDaySection(
                 }
             } else {
                 Text(
-                    text = day.name,
+                    text = day.displayLabel(),
                     style = MaterialTheme.typography.titleLarge,
                     modifier = Modifier
                         .weight(1f)
@@ -242,7 +243,7 @@ private fun WeekRoutineDaySection(
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Text(
-                    text = weekDay.toSpanishLabel(),
+                    text = day?.displayLabel() ?: weekDay.toSpanishLabel(),
                     style = MaterialTheme.typography.titleLarge,
                     modifier = Modifier.testTag("currentDayLabel")
                 )
@@ -322,7 +323,7 @@ private fun DayPickerDialog(
             LazyColumn {
                 itemsIndexed(days) { index, day ->
                     Text(
-                        text = day.name,
+                        text = day.displayLabel(),
                         style = MaterialTheme.typography.bodyLarge,
                         modifier = Modifier
                             .fillMaxWidth()

@@ -46,6 +46,7 @@ import com.example.fitswap.domain.model.Routine
 import com.example.fitswap.domain.model.RoutineDay
 import com.example.fitswap.domain.model.RoutineExercise
 import com.example.fitswap.domain.model.WEEK_DAYS_ES
+import com.example.fitswap.domain.model.displayLabel
 import com.example.fitswap.domain.model.toSpanishLabel
 import com.example.fitswap.ui.common.AppTopBar
 import com.example.fitswap.ui.common.BackNavigationIcon
@@ -260,7 +261,7 @@ private fun DayHeaderRow(day: RoutineDay, onRenameDay: (String) -> Unit, onRemov
             }
         } else {
             Text(
-                text = day.name,
+                text = day.displayLabel(),
                 style = MaterialTheme.typography.titleMedium,
                 modifier = Modifier
                     .weight(1f)
@@ -324,52 +325,66 @@ private fun ExerciseEditorRow(
 private fun AddDaySection(onAddDay: (name: String, dayOfWeek: DayOfWeek?) -> Unit) {
     var selectedDay by remember { mutableStateOf<DayOfWeek?>(null) }
     var expanded by remember { mutableStateOf(false) }
+    var dayName by remember { mutableStateOf("") }
 
-    Row(
-        modifier = Modifier.fillMaxWidth(),
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(8.dp)
-    ) {
-        ExposedDropdownMenuBox(
-            expanded = expanded,
-            onExpandedChange = { expanded = it },
-            modifier = Modifier.weight(1f)
+    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(8.dp)
         ) {
-            OutlinedTextField(
-                value = selectedDay?.toSpanishLabel().orEmpty(),
-                onValueChange = {},
-                readOnly = true,
-                label = { Text("Día de la semana") },
-                trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded) },
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .menuAnchor(ExposedDropdownMenuAnchorType.PrimaryNotEditable, enabled = true)
-                    .testTag("newDayOfWeekField")
-            )
-            ExposedDropdownMenu(
+            ExposedDropdownMenuBox(
                 expanded = expanded,
-                onDismissRequest = { expanded = false }
+                onExpandedChange = { expanded = it },
+                modifier = Modifier.weight(1f)
             ) {
-                WEEK_DAYS_ES.forEach { day ->
-                    DropdownMenuItem(
-                        text = { Text(day.toSpanishLabel()) },
-                        onClick = {
-                            selectedDay = day
-                            expanded = false
-                        },
-                        modifier = Modifier.testTag("dayOfWeekOption_${day.name}")
-                    )
+                OutlinedTextField(
+                    value = selectedDay?.toSpanishLabel().orEmpty(),
+                    onValueChange = {},
+                    readOnly = true,
+                    label = { Text("Día de la semana") },
+                    trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded) },
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .menuAnchor(ExposedDropdownMenuAnchorType.PrimaryNotEditable, enabled = true)
+                        .testTag("newDayOfWeekField")
+                )
+                ExposedDropdownMenu(
+                    expanded = expanded,
+                    onDismissRequest = { expanded = false }
+                ) {
+                    WEEK_DAYS_ES.forEach { day ->
+                        DropdownMenuItem(
+                            text = { Text(day.toSpanishLabel()) },
+                            onClick = {
+                                selectedDay = day
+                                expanded = false
+                            },
+                            modifier = Modifier.testTag("dayOfWeekOption_${day.name}")
+                        )
+                    }
                 }
             }
         }
+        OutlinedTextField(
+            value = dayName,
+            onValueChange = { dayName = it },
+            label = { Text("Nombre (ej. Push, Pull, Piernas)") },
+            modifier = Modifier
+                .fillMaxWidth()
+                .testTag("newDayNameField")
+        )
         Button(
             onClick = {
                 val day = selectedDay ?: return@Button
-                onAddDay(day.toSpanishLabel(), day)
+                onAddDay(dayName.ifBlank { day.toSpanishLabel() }, day)
                 selectedDay = null
+                dayName = ""
             },
             enabled = selectedDay != null,
-            modifier = Modifier.testTag("addDayButton")
+            modifier = Modifier
+                .fillMaxWidth()
+                .testTag("addDayButton")
         ) {
             Text("+ Agregar día")
         }

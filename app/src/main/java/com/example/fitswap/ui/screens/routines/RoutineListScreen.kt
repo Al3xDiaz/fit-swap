@@ -37,6 +37,7 @@ import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.example.fitswap.domain.model.Routine
 import com.example.fitswap.domain.model.WEEK_DAYS_ES
+import com.example.fitswap.domain.model.displayLabel
 import com.example.fitswap.domain.model.toSpanishLabel
 import com.example.fitswap.ui.common.AppTopBar
 import com.example.fitswap.ui.common.MenuNavigationIcon
@@ -195,7 +196,7 @@ private fun DefaultRoutineHome(
                             verticalAlignment = Alignment.CenterVertically,
                             modifier = Modifier.clickable(onClick = onChangeDayClick).testTag("changeDayButton")
                         ) {
-                            Text(selectedWeekDay.toSpanishLabel(), style = MaterialTheme.typography.titleMedium)
+                            Text(day?.displayLabel() ?: selectedWeekDay.toSpanishLabel(), style = MaterialTheme.typography.titleMedium)
                             Icon(Icons.Default.ArrowDropDown, contentDescription = "Cambiar día")
                         }
                     }
