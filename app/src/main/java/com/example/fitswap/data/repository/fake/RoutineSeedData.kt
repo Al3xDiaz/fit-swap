@@ -28,13 +28,39 @@ private fun routineExercise(
     notes = notes,
 )
 
+/**
+ * Calentamiento/vuelta a la calma: envuelven un ejercicio de [ExerciseType.CARDIO] elegido según
+ * los grupos musculares del día (ver [pushDay]/[pullDay]/etc.), no series de fuerza — el flujo de
+ * entrenamiento se bifurca por `ExerciseType` y para cardio no usa `SetPlanner`, así que estos
+ * campos de series son cosméticos.
+ */
+private fun calentamiento(dayId: String, exercise: Exercise) = RoutineExercise(
+    id = "$dayId-calentamiento",
+    exercise = exercise,
+    approachSets = 0,
+    effectiveSets = 0,
+    effectiveRepsLabel = "5 min",
+    restLabel = "—",
+    notes = "Calentamiento general (5 min)",
+)
+
+private fun vueltaALaCalma(dayId: String, exercise: Exercise) = RoutineExercise(
+    id = "$dayId-vuelta-a-la-calma",
+    exercise = exercise,
+    approachSets = 0,
+    effectiveSets = 0,
+    effectiveRepsLabel = "5 min",
+    restLabel = "—",
+    notes = "Vuelta a la calma (5 min)",
+)
+
 private fun pushDay(routineId: String): RoutineDay {
     val dayId = "$routineId-martes"
     return RoutineDay(
         id = dayId,
-        name = "Martes — Push",
+        name = "Push",
         dayOfWeek = DayOfWeek.TUESDAY,
-        exercises = listOf(
+        exercises = listOf(calentamiento(dayId, ExerciseCatalog.eliptica)) + listOf(
             routineExercise(dayId, ExerciseCatalog.elevacionesLaterales, approachSets = 0, effectiveSets = 4, effectiveRepsLabel = "12–15", restLabel = "60–75 s", notes = "Deltoide lateral primero para priorizarlo. Brazo ligeramente hacia delante."),
             routineExercise(dayId, ExerciseCatalog.pressMilitarMaquina, approachSets = 1, effectiveSets = 4, effectiveRepsLabel = "8–12", approachGuideline = "60% × 6–8", restLabel = "2–3 min", notes = "Ajustar asiento para que los agarres queden aproximadamente a nivel de la barbilla; codos ~45°."),
             routineExercise(dayId, ExerciseCatalog.pressDePecho, approachSets = 1, effectiveSets = 4, effectiveRepsLabel = "8–12", approachGuideline = "60–65% × 6–8", restLabel = "2–3 min", notes = "Máquina o mancuernas. Control y escápulas estables."),
@@ -42,7 +68,7 @@ private fun pushDay(routineId: String): RoutineDay {
             routineExercise(dayId, ExerciseCatalog.fondosParaTriceps, approachSets = 0, effectiveSets = 3, effectiveRepsLabel = "Cerca del fallo técnico", restLabel = "2 min", notes = "Torso relativamente vertical y codos controlados. Es normal sentir algo de pecho."),
             routineExercise(dayId, ExerciseCatalog.extensionTricepsCuerda, approachSets = 0, effectiveSets = 3, effectiveRepsLabel = "12–15", restLabel = "60–90 s", notes = "Codos estables."),
             routineExercise(dayId, ExerciseCatalog.extensionTricepsOverhead, approachSets = 0, effectiveSets = 2, effectiveRepsLabel = "12–15", restLabel = "60–90 s", notes = "Buena opción para trabajar la cabeza larga del tríceps."),
-        )
+        ) + listOf(vueltaALaCalma(dayId, ExerciseCatalog.eliptica))
     )
 }
 
@@ -50,9 +76,9 @@ private fun pullDay(routineId: String): RoutineDay {
     val dayId = "$routineId-miercoles"
     return RoutineDay(
         id = dayId,
-        name = "Miércoles — Pull",
+        name = "Pull",
         dayOfWeek = DayOfWeek.WEDNESDAY,
-        exercises = listOf(
+        exercises = listOf(calentamiento(dayId, ExerciseCatalog.remoMaquina)) + listOf(
             routineExercise(dayId, ExerciseCatalog.jalonAlPechoDominadas, approachSets = 1, effectiveSets = 4, effectiveRepsLabel = "8–12", approachGuideline = "60–65% × 6–8", restLabel = "2–3 min", usesStraps = true, notes = "Usar straps si el agarre limita el trabajo de espalda."),
             routineExercise(dayId, ExerciseCatalog.remoConBarraOMancuerna, approachSets = 1, effectiveSets = 4, effectiveRepsLabel = "8–12", approachGuideline = "60–70% × 5–6", restLabel = "2–3 min", usesStraps = true, notes = "Sin impulso. Straps especialmente útiles en series pesadas."),
             routineExercise(dayId, ExerciseCatalog.remoChestSupported, approachSets = 0, effectiveSets = 3, effectiveRepsLabel = "10–12", restLabel = "2 min", usesStraps = true, notes = "Controlar el recorrido y evitar impulso."),
@@ -60,7 +86,7 @@ private fun pullDay(routineId: String): RoutineDay {
             routineExercise(dayId, ExerciseCatalog.curlBicepsBarra, approachSets = 0, effectiveSets = 3, effectiveRepsLabel = "8–12", restLabel = "90 s", notes = "Evitar balanceo."),
             routineExercise(dayId, ExerciseCatalog.curlMartillo, approachSets = 0, effectiveSets = 3, effectiveRepsLabel = "10–12", restLabel = "90 s", notes = "Trabaja bíceps, braquial y braquiorradial."),
             routineExercise(dayId, ExerciseCatalog.wristCurls, approachSets = 0, effectiveSets = 2, effectiveRepsLabel = "12–15", restLabel = "60 s", notes = "Trabajo directo de antebrazo."),
-        )
+        ) + listOf(vueltaALaCalma(dayId, ExerciseCatalog.remoMaquina))
     )
 }
 
@@ -68,16 +94,16 @@ private fun legsDay(routineId: String): RoutineDay {
     val dayId = "$routineId-jueves"
     return RoutineDay(
         id = dayId,
-        name = "Jueves — Legs",
+        name = "Piernas",
         dayOfWeek = DayOfWeek.THURSDAY,
-        exercises = listOf(
+        exercises = listOf(calentamiento(dayId, ExerciseCatalog.bicicletaEstatica)) + listOf(
             routineExercise(dayId, ExerciseCatalog.sentadillaHackSquatPrensa, approachSets = 2, effectiveSets = 4, effectiveRepsLabel = "8–12", approachGuideline = "50% × 6 → 70% × 4", restLabel = "2–3 min", notes = "Principal del día. Priorizar técnica y rango cómodo."),
             routineExercise(dayId, ExerciseCatalog.hipThrust, approachSets = 1, effectiveSets = 4, effectiveRepsLabel = "8–12", approachGuideline = "60–65% × 6", restLabel = "2–3 min", notes = "Pausa breve arriba y control de la pelvis."),
             routineExercise(dayId, ExerciseCatalog.extensionCuadriceps, approachSets = 0, effectiveSets = 3, effectiveRepsLabel = "12–15", restLabel = "75–90 s", notes = "Controlar especialmente la bajada."),
             routineExercise(dayId, ExerciseCatalog.curlFemoral, approachSets = 0, effectiveSets = 3, effectiveRepsLabel = "12–15", restLabel = "75–90 s", notes = "Recorrido controlado."),
             routineExercise(dayId, ExerciseCatalog.aductoresAbductores, approachSets = 0, effectiveSets = 3, effectiveRepsLabel = "12–15", restLabel = "60–75 s", notes = "Aductores = parte interna; abductores = parte externa. Se pueden alternar semanalmente."),
             routineExercise(dayId, ExerciseCatalog.pantorrillas, approachSets = 0, effectiveSets = 4, effectiveRepsLabel = "12–20", restLabel = "60–75 s", notes = "Recorrido amplio y controlado, con pausa arriba."),
-        )
+        ) + listOf(vueltaALaCalma(dayId, ExerciseCatalog.bicicletaEstatica))
     )
 }
 
@@ -85,16 +111,16 @@ private fun fullUpperDay(routineId: String): RoutineDay {
     val dayId = "$routineId-sabado"
     return RoutineDay(
         id = dayId,
-        name = "Sábado — Full Upper",
+        name = "Full Upper",
         dayOfWeek = DayOfWeek.SATURDAY,
-        exercises = listOf(
+        exercises = listOf(calentamiento(dayId, ExerciseCatalog.caminarEnCinta)) + listOf(
             routineExercise(dayId, ExerciseCatalog.pressInclinado, approachSets = 1, effectiveSets = 3, effectiveRepsLabel = "8–12", approachGuideline = "60–65% × 6", restLabel = "2 min", notes = "Controlar el movimiento."),
             routineExercise(dayId, ExerciseCatalog.remoEnMaquinaOMancuerna, approachSets = 0, effectiveSets = 3, effectiveRepsLabel = "10–12", restLabel = "2 min", usesStraps = true, notes = "Straps opcionales según agarre."),
             routineExercise(dayId, ExerciseCatalog.jalonAlPecho, approachSets = 0, effectiveSets = 3, effectiveRepsLabel = "8–12", restLabel = "2 min", usesStraps = true, notes = "Priorizar espalda sobre agarre."),
             routineExercise(dayId, ExerciseCatalog.elevacionesLaterales, approachSets = 0, effectiveSets = 3, effectiveRepsLabel = "12–15", restLabel = "60 s", notes = "Volumen accesorio para deltoide lateral."),
             routineExercise(dayId, ExerciseCatalog.pressDeHombroEnMaquina, approachSets = 0, effectiveSets = 2, effectiveRepsLabel = "10–12", restLabel = "2 min", notes = "Más ligero que el martes."),
             routineExercise(dayId, ExerciseCatalog.facePulls, approachSets = 0, effectiveSets = 2, effectiveRepsLabel = "~15", restLabel = "60 s", notes = "Control y técnica."),
-        )
+        ) + listOf(vueltaALaCalma(dayId, ExerciseCatalog.caminarEnCinta))
     )
 }
 
@@ -102,9 +128,9 @@ private fun armsLegsChestDay(routineId: String): RoutineDay {
     val dayId = "$routineId-domingo"
     return RoutineDay(
         id = dayId,
-        name = "Domingo — Brazos + Pierna + Pecho",
+        name = "Brazos + Pierna + Pecho",
         dayOfWeek = DayOfWeek.SUNDAY,
-        exercises = listOf(
+        exercises = listOf(calentamiento(dayId, ExerciseCatalog.caminarEnCinta)) + listOf(
             routineExercise(dayId, ExerciseCatalog.prensaSentadillaLigera, approachSets = 0, effectiveSets = 3, effectiveRepsLabel = "10–12", restLabel = "2 min", notes = "Trabajo de pierna secundario."),
             routineExercise(dayId, ExerciseCatalog.curlFemoralExtensionCuadriceps, approachSets = 0, effectiveSets = 2, effectiveRepsLabel = "12–15", restLabel = "75 s", notes = "Elegir según lo que quieras priorizar."),
             routineExercise(dayId, ExerciseCatalog.curlBicepsAlternado, approachSets = 0, effectiveSets = 3, effectiveRepsLabel = "10–12", restLabel = "90 s", notes = "Controlar el movimiento."),
@@ -112,7 +138,7 @@ private fun armsLegsChestDay(routineId: String): RoutineDay {
             routineExercise(dayId, ExerciseCatalog.tricepsEnCuerda, approachSets = 0, effectiveSets = 3, effectiveRepsLabel = "12–15", restLabel = "75 s", notes = "Codos estables."),
             routineExercise(dayId, ExerciseCatalog.extensionTricepsOverhead, approachSets = 0, effectiveSets = 2, effectiveRepsLabel = "12–15", restLabel = "75 s", notes = "Recorrido cómodo."),
             routineExercise(dayId, ExerciseCatalog.pechoPressAperturas, approachSets = 0, effectiveSets = 2, effectiveRepsLabel = "10–12", restLabel = "90 s", notes = "Trabajo adicional de pecho, sin necesidad de llevarlo al fallo."),
-        )
+        ) + listOf(vueltaALaCalma(dayId, ExerciseCatalog.caminarEnCinta))
     )
 }
 

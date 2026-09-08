@@ -38,8 +38,9 @@ class SessionMenuAndNotesFlowTest {
     fun cierraElLoopCompletoDeEntrenamientoDePuntaAPunta() {
         composeTestRule.onNodeWithTag("routineListItem_default").performClick()
         composeTestRule.onNodeWithTag("startWorkoutButton_default-martes").performClick()
-        composeTestRule.waitUntilTagExists("registerSetButton")
-        composeTestRule.onNodeWithTag("appTopBarTitle").assertTextEquals("Elevaciones laterales")
+        // El día arranca en el calentamiento de cardio (rutina sembrada), no en fuerza.
+        composeTestRule.waitUntilTagExists("cardioStartButton")
+        composeTestRule.onNodeWithTag("appTopBarTitle").assertTextEquals("Elíptica")
 
         // Menú de sesión: ahora reemplaza al drawer principal mientras hay una rutina activa —
         // se abre con el mismo ícono/posición que el menú de la app (ver AppNavHost).
@@ -76,7 +77,7 @@ class SessionMenuAndNotesFlowTest {
     fun cancelarTerminarRutinaMantieneElMenuDeSesion() {
         composeTestRule.onNodeWithTag("routineListItem_default").performClick()
         composeTestRule.onNodeWithTag("startWorkoutButton_default-martes").performClick()
-        composeTestRule.waitUntilTagExists("registerSetButton")
+        composeTestRule.waitUntilTagExists("cardioStartButton")
 
         composeTestRule.onNodeWithContentDescription("Abrir menú").performClick()
         composeTestRule.waitUntilTagExists("finishRoutineItem")
@@ -93,20 +94,20 @@ class SessionMenuAndNotesFlowTest {
     fun elMenuDeSesionSeAbreYCierraConGestoDeSwipe() {
         composeTestRule.onNodeWithTag("routineListItem_default").performClick()
         composeTestRule.onNodeWithTag("startWorkoutButton_default-martes").performClick()
-        composeTestRule.waitUntilTagExists("registerSetButton")
+        composeTestRule.waitUntilTagExists("cardioStartButton")
 
         composeTestRule.onRoot().performTouchInput { swipeRight() }
         composeTestRule.waitUntilTagExists("sessionMenuItem_default-martes-press-militar-maquina")
 
         composeTestRule.onRoot().performTouchInput { swipeLeft() }
-        composeTestRule.waitUntilTagExists("registerSetButton")
+        composeTestRule.waitUntilTagExists("cardioStartButton")
     }
 
     @Test
     fun swipeDuranteNotasNoAbreElDrawerDeNavegacion() {
         composeTestRule.onNodeWithTag("routineListItem_default").performClick()
         composeTestRule.onNodeWithTag("startWorkoutButton_default-martes").performClick()
-        composeTestRule.waitUntilTagExists("registerSetButton")
+        composeTestRule.waitUntilTagExists("cardioStartButton")
 
         composeTestRule.onNodeWithTag("notesButton").performClick()
         composeTestRule.waitUntilTagExists("noteInputField")

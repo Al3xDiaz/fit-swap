@@ -64,6 +64,9 @@ class SettingsFlowTest {
         composeTestRule.onNodeWithTag("routineListItem_default").performClick()
         composeTestRule.onNodeWithTag("startWorkoutButton_default-martes").performClick()
 
+        // El día ahora arranca en el calentamiento de cardio (rutina sembrada) — saltarlo para
+        // llegar a un ejercicio de fuerza donde registrar una serie.
+        composeTestRule.onNodeWithTag("nextExerciseButton").performClick()
         composeTestRule.onNodeWithTag("registerSetButton").performClick()
         composeTestRule.waitUntilTagExists("restTimerLabel")
         composeTestRule.onNodeWithTag("restTimerLabel").assertTextEquals("⏱ Descanso: 00:30")

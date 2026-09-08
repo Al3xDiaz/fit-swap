@@ -18,8 +18,8 @@ import org.junit.Test
 private const val ROUTINE_ID = "default"
 private const val PUSH_DAY_ID = "default-martes"
 
-// Orden del día (Martes — Push): elevaciones, press militar, press de pecho, aperturas, fondos,
-// extensión cuerda, extensión overhead.
+// Orden del día (Martes — Push): calentamiento (cardio), elevaciones, press militar, press de
+// pecho, aperturas, fondos, extensión cuerda, extensión overhead, vuelta a la calma (cardio).
 private const val ELEVACIONES_ID = "default-martes-elevaciones-laterales" // approach=0, effective=4
 private const val PRESS_MILITAR_ID = "default-martes-press-militar-maquina" // approach=1, effective=4
 
@@ -47,7 +47,7 @@ class SessionMenuViewModelTest {
 
         val state = viewModel.uiState.first { !it.isLoading }
 
-        assertEquals(7, state.items.size)
+        assertEquals(9, state.items.size) // 7 de fuerza + calentamiento y vuelta a la calma (cardio)
         val elevaciones = state.items.first { it.routineExerciseId == ELEVACIONES_ID }
         val pressMilitar = state.items.first { it.routineExerciseId == PRESS_MILITAR_ID }
         assertEquals(SessionExerciseStatus.ACTIVE, elevaciones.status)

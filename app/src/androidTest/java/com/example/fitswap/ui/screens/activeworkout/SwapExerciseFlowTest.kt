@@ -34,6 +34,8 @@ class SwapExerciseFlowTest {
         composeTestRule.onNodeWithTag("dayPickerItem_default-jueves").performClick()
         composeTestRule.onNodeWithTag("startWorkoutButton_default-jueves").performClick()
 
+        // El día ahora arranca en el calentamiento de cardio (rutina sembrada) — saltarlo.
+        composeTestRule.onNodeWithTag("nextExerciseButton").performClick()
         composeTestRule.onNodeWithTag("appTopBarTitle").assertTextEquals("Sentadilla / hack squat / prensa")
 
         composeTestRule.onNodeWithTag("swapExerciseButton").performClick()

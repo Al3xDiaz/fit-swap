@@ -41,6 +41,9 @@ private const val PUSH_DAY_ID = "default-martes"
 private const val LEGS_DAY_ID = "default-jueves"
 private const val SUNDAY_DAY_ID = "default-domingo"
 
+// Cardio, primer ejercicio del día (calentamiento agregado a la rutina sembrada) — sin previousExerciseId.
+private const val CALENTAMIENTO_ID = "default-martes-calentamiento"
+
 // approachSets = 0, effectiveSets = 4, sin historial -> plan = [WARMUP, EFFECTIVE x4], peso 1kg
 private const val ELEVACIONES_ID = "default-martes-elevaciones-laterales"
 
@@ -50,9 +53,12 @@ private const val PRESS_MILITAR_ID = "default-martes-press-militar-maquina"
 // approachSets = 1, effectiveSets = 4, con historial (60kg) -> plan = [WARMUP, APPROACH, EFFECTIVE x4]
 private const val PRESS_DE_PECHO_ID = "default-martes-press-de-pecho"
 
-// último ejercicio del día martes -> no hay siguiente al que auto-avanzar.
+// último ejercicio de fuerza del día martes -> su siguiente es la vuelta a la calma (cardio).
 // approachSets = 0, effectiveSets = 2 -> plan = [WARMUP, EFFECTIVE, EFFECTIVE]
 private const val EXTENSION_TRICEPS_OVERHEAD_ID = "default-martes-extension-triceps-overhead"
+
+// Cardio, último ejercicio del día (vuelta a la calma agregada a la rutina sembrada) -> sin siguiente.
+private const val VUELTA_A_LA_CALMA_ID = "default-martes-vuelta-a-la-calma"
 
 // approachSets = 2, effectiveSets = 4, con historial propio (80kg); su sustituto es "prensa-sentadilla-ligera"
 private const val SENTADILLA_ID = "default-jueves-sentadilla-hack-prensa"
@@ -215,6 +221,17 @@ class ActiveExerciseViewModelTest {
         val state = viewModel.uiState.first { !it.isLoading }
 
         assertEquals(PRESS_MILITAR_ID, state.nextExerciseId)
+        // El día ahora arranca con el calentamiento (cardio) agregado a la rutina sembrada.
+        assertEquals(CALENTAMIENTO_ID, state.previousExerciseId)
+    }
+
+    @Test
+    fun `el calentamiento del dia no tiene ejercicio anterior`() = runTest {
+        val viewModel = viewModel(CALENTAMIENTO_ID)
+
+        val state = viewModel.uiState.first { !it.isLoading }
+
+        assertEquals(ELEVACIONES_ID, state.nextExerciseId)
         assertNull(state.previousExerciseId)
     }
 
@@ -228,8 +245,17 @@ class ActiveExerciseViewModelTest {
     }
 
     @Test
-    fun `el ultimo ejercicio del dia no tiene siguiente`() = runTest {
+    fun `el ultimo ejercicio de fuerza del dia tiene la vuelta a la calma como siguiente`() = runTest {
         val viewModel = viewModel(EXTENSION_TRICEPS_OVERHEAD_ID)
+
+        val state = viewModel.uiState.first { !it.isLoading }
+
+        assertEquals(VUELTA_A_LA_CALMA_ID, state.nextExerciseId)
+    }
+
+    @Test
+    fun `la vuelta a la calma es el ultimo ejercicio del dia, sin siguiente`() = runTest {
+        val viewModel = viewModel(VUELTA_A_LA_CALMA_ID)
 
         val state = viewModel.uiState.first { !it.isLoading }
 

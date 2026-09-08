@@ -34,6 +34,11 @@ class ActiveExerciseFlowTest {
         composeTestRule.onNodeWithTag("routineListItem_default").performClick()
         composeTestRule.onNodeWithTag("startWorkoutButton_default-martes").performClick()
 
+        // El día ahora arranca con un calentamiento de cardio (rutina sembrada) — saltarlo para
+        // llegar al primer ejercicio de fuerza.
+        composeTestRule.onNodeWithTag("appTopBarTitle").assertTextEquals("Elíptica")
+        composeTestRule.onNodeWithTag("nextExerciseButton").performClick()
+
         composeTestRule.onNodeWithTag("appTopBarTitle").assertTextEquals("Elevaciones laterales")
         composeTestRule.onNodeWithTag("currentStageLabel").assertTextEquals("Calentamiento")
 
@@ -53,9 +58,13 @@ class ActiveExerciseFlowTest {
     fun elBotonSiguienteAvanzaDeEjercicioSinTerminarElActual() {
         composeTestRule.onNodeWithTag("routineListItem_default").performClick()
         composeTestRule.onNodeWithTag("startWorkoutButton_default-martes").performClick()
-        composeTestRule.onNodeWithTag("appTopBarTitle").assertTextEquals("Elevaciones laterales")
+        // El día arranca en el calentamiento de cardio (rutina sembrada).
+        composeTestRule.onNodeWithTag("appTopBarTitle").assertTextEquals("Elíptica")
 
         // "Siguiente" está siempre disponible, no requiere terminar el ejercicio actual.
+        composeTestRule.onNodeWithTag("nextExerciseButton").performClick()
+        composeTestRule.onNodeWithTag("appTopBarTitle").assertTextEquals("Elevaciones laterales")
+
         composeTestRule.onNodeWithTag("nextExerciseButton").performClick()
         composeTestRule.onNodeWithTag("appTopBarTitle").assertTextEquals("Press militar en máquina")
 
@@ -67,7 +76,9 @@ class ActiveExerciseFlowTest {
     fun volverDesdeEjercicioActivoPideConfirmacionYTerminaLaRutina() {
         composeTestRule.onNodeWithTag("routineListItem_default").performClick()
         composeTestRule.onNodeWithTag("startWorkoutButton_default-martes").performClick()
-        composeTestRule.waitUntilTagExists("registerSetButton")
+        // El calentamiento del día es cardio, no fuerza — esperar su botón de inicio en vez de
+        // "registerSetButton" (que solo existe en la pestaña de fuerza).
+        composeTestRule.waitUntilTagExists("cardioStartButton")
 
         // El ícono de la topBar ahora abre el menú de sesión (reemplaza al drawer principal
         // mientras hay rutina activa, ver AppNavHost) — salir se hace con el back del sistema.
