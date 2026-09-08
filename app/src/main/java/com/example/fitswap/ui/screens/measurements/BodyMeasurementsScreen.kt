@@ -12,6 +12,7 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -30,6 +31,7 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.example.fitswap.domain.logic.BmiCategory
+import com.example.fitswap.domain.logic.MuscleFocusRatio
 import com.example.fitswap.ui.common.AppTopBar
 import com.example.fitswap.ui.common.ConfirmDialog
 import com.example.fitswap.ui.common.MenuNavigationIcon
@@ -83,6 +85,9 @@ fun BodyMeasurementsScreen(
                     items(uiState.rows, key = { it.entry.id }) { row ->
                         MeasurementRow(row, onDelete = { viewModel.deleteMeasurement(row.entry.id) })
                     }
+                    if (uiState.muscleFocusRatios.isNotEmpty()) {
+                        item { MuscleFocusSection(uiState.muscleFocusRatios) }
+                    }
                 }
             }
         }
@@ -134,6 +139,32 @@ private fun MeasurementRow(row: BodyMeasurementRow, onDelete: () -> Unit) {
             },
             onCancel = { showDeleteConfirm = false }
         )
+    }
+}
+
+/** Sección sin `Card` a propósito, como el resto de la pantalla: texto plano para no ocultar datos
+ * faltantes detrás de un número (ver comentario de `BodyMetrics.kt`) — un `HorizontalDivider` +
+ * título alcanza para separar la sección de la lista de mediciones. */
+@Composable
+private fun MuscleFocusSection(ratios: List<MuscleFocusRatio>) {
+    Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+        HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp))
+        Text("Enfoque muscular", style = MaterialTheme.typography.titleMedium)
+        Text(
+            text = "Estas relaciones son una referencia general basada en proporciones corporales, " +
+                "no un diagnóstico médico ni una evaluación de precisión clínica — usalas solo como guía orientativa.",
+            style = MaterialTheme.typography.bodySmall,
+            modifier = Modifier.testTag("muscleFocusDisclaimer")
+        )
+        ratios.forEach { ratio ->
+            Text(
+                text = "${ratio.label}: ${ratio.value?.let { formatNumber(it) } ?: "—"} — ${ratio.interpretation}",
+                style = MaterialTheme.typography.bodyMedium,
+                modifier = Modifier
+                    .padding(top = 4.dp)
+                    .testTag("muscleFocusRow_${ratio.id.name}")
+            )
+        }
     }
 }
 

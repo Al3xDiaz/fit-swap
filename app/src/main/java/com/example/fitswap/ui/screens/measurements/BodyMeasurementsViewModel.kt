@@ -6,6 +6,8 @@ import com.example.fitswap.data.repository.BodyMeasurementRepository
 import com.example.fitswap.data.repository.BodyProfileRepository
 import com.example.fitswap.domain.logic.BmiCategory
 import com.example.fitswap.domain.logic.BodyMetrics
+import com.example.fitswap.domain.logic.MuscleFocusAnalyzer
+import com.example.fitswap.domain.logic.MuscleFocusRatio
 import com.example.fitswap.domain.model.BodyMeasurementEntry
 import com.example.fitswap.domain.model.BodyProfile
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -27,6 +29,8 @@ data class BodyMeasurementsUiState(
     val isLoading: Boolean = true,
     val rows: List<BodyMeasurementRow> = emptyList(),
     val profile: BodyProfile = BodyProfile(),
+    /** Calculado sobre la medición más reciente (ver [MuscleFocusAnalyzer]) — vacío sin mediciones. */
+    val muscleFocusRatios: List<MuscleFocusRatio> = emptyList(),
 )
 
 @HiltViewModel
@@ -47,6 +51,8 @@ class BodyMeasurementsViewModel @Inject constructor(
             isLoading = false,
             rows = measurements.map { entry -> entry.toRow(profile) },
             profile = profile,
+            // `measurements` viene más-reciente-primero (ver FakeBodyMeasurementRepository/DAO).
+            muscleFocusRatios = measurements.firstOrNull()?.let { MuscleFocusAnalyzer.analyze(it, profile) }.orEmpty(),
         )
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), BodyMeasurementsUiState())
 
