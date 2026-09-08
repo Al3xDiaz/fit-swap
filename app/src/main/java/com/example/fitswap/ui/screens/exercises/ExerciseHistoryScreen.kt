@@ -3,12 +3,14 @@ package com.example.fitswap.ui.screens.exercises
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.HorizontalDivider
@@ -19,6 +21,9 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
@@ -30,11 +35,13 @@ import com.example.fitswap.domain.model.CardioSession
 import com.example.fitswap.domain.model.ExerciseType
 import com.example.fitswap.ui.common.AppTopBar
 import com.example.fitswap.ui.common.BackNavigationIcon
+import com.example.fitswap.ui.common.ConfirmDialog
 
 @Composable
 fun ExerciseHistoryScreen(
     onBack: () -> Unit,
     onEdit: () -> Unit,
+    onEditCardioSession: (sessionId: String) -> Unit,
     viewModel: ExerciseHistoryViewModel = hiltViewModel(),
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
@@ -82,7 +89,11 @@ fun ExerciseHistoryScreen(
                         .padding(16.dp)
                 ) {
                     items(uiState.cardioSessions, key = { it.id }) { session ->
-                        CardioSessionRow(session)
+                        CardioSessionRow(
+                            session,
+                            onEdit = { onEditCardioSession(session.id) },
+                            onDelete = { viewModel.deleteCardioSession(session.id) },
+                        )
                         HorizontalDivider()
                     }
                 }
@@ -136,21 +147,47 @@ fun ExerciseHistoryScreen(
 }
 
 @Composable
-private fun CardioSessionRow(session: CardioSession) {
-    Column(
+private fun CardioSessionRow(session: CardioSession, onEdit: () -> Unit, onDelete: () -> Unit) {
+    var showDeleteConfirm by remember { mutableStateOf(false) }
+
+    Row(
         modifier = Modifier
             .fillMaxWidth()
             .testTag("cardioSessionRow_${session.date}")
-            .padding(vertical = 8.dp)
+            .padding(vertical = 8.dp),
+        verticalAlignment = Alignment.CenterVertically
     ) {
-        Text("${session.date} · ${session.durationSeconds / 60}:${"%02d".format(session.durationSeconds % 60)}", style = MaterialTheme.typography.bodyLarge)
-        Text(
-            text = listOfNotNull(
-                session.distanceKm?.let { "${formatWeight(it)} km" },
-                session.avgHeartRate?.let { "$it bpm" },
-                session.calories?.let { "$it kcal" },
-            ).ifEmpty { listOf("Sin datos adicionales") }.joinToString(" · "),
-            style = MaterialTheme.typography.bodyMedium,
+        Column(modifier = Modifier.weight(1f)) {
+            Text("${session.date} · ${session.durationSeconds / 60}:${"%02d".format(session.durationSeconds % 60)}", style = MaterialTheme.typography.bodyLarge)
+            Text(
+                text = listOfNotNull(
+                    session.distanceKm?.let { "${formatWeight(it)} km" },
+                    session.avgHeartRate?.let { "$it bpm" },
+                    session.calories?.let { "$it kcal" },
+                ).ifEmpty { listOf("Sin datos adicionales") }.joinToString(" · "),
+                style = MaterialTheme.typography.bodyMedium,
+            )
+        }
+        IconButton(onClick = onEdit, modifier = Modifier.testTag("editCardioButton_${session.id}")) {
+            Icon(Icons.Default.Edit, contentDescription = "Editar sesión")
+        }
+        IconButton(
+            onClick = { showDeleteConfirm = true },
+            modifier = Modifier.testTag("deleteCardioButton_${session.id}")
+        ) {
+            Icon(Icons.Default.Delete, contentDescription = "Eliminar sesión")
+        }
+    }
+
+    if (showDeleteConfirm) {
+        ConfirmDialog(
+            title = "¿Eliminar sesión?",
+            message = "Se eliminará esta sesión del ${session.date}. No se puede deshacer.",
+            onConfirm = {
+                showDeleteConfirm = false
+                onDelete()
+            },
+            onCancel = { showDeleteConfirm = false }
         )
     }
 }

@@ -72,6 +72,39 @@ class RoomCardioSessionRepositoryTest {
     }
 
     @Test
+    fun updateSessionReemplazaLosDatosSinDuplicarLaFila() = runBlocking {
+        val exercise = Exercise("caminar-en-cinta", "Caminar en cinta", "Cardio", "Cinta", type = ExerciseType.CARDIO)
+        exerciseRepository.addExercise(exercise)
+        cardioRepository.addSession(
+            CardioSession("session-1", exercise.id, LocalDate.of(2026, 9, 1), 600, 5.2, 140, 300)
+        )
+
+        cardioRepository.updateSession(
+            CardioSession("session-1", exercise.id, LocalDate.of(2026, 9, 1), 900, 7.5, 150, 450)
+        )
+
+        val sessions = cardioRepository.observeSessions(exercise.id).first()
+        assertEquals(1, sessions.size)
+        val session = sessions.single()
+        assertEquals(900, session.durationSeconds)
+        assertEquals(7.5, session.distanceKm)
+    }
+
+    @Test
+    fun deleteSessionLaQuitaSinAfectarOtrasSesiones() = runBlocking {
+        val exercise = Exercise("caminar-en-cinta", "Caminar en cinta", "Cardio", "Cinta", type = ExerciseType.CARDIO)
+        exerciseRepository.addExercise(exercise)
+        cardioRepository.addSession(CardioSession("session-1", exercise.id, LocalDate.of(2026, 9, 1), 600, 5.2, 140, 300))
+        cardioRepository.addSession(CardioSession("session-2", exercise.id, LocalDate.of(2026, 9, 2), 600, 5.2, 140, 300))
+
+        cardioRepository.deleteSession("session-1")
+
+        val sessions = cardioRepository.observeSessions(exercise.id).first()
+        assertEquals(1, sessions.size)
+        assertEquals("session-2", sessions.single().id)
+    }
+
+    @Test
     fun borrarElEjercicioBorraEnCascadaSusSesionesDeCardio() = runBlocking {
         val exercise = Exercise("caminar-en-cinta", "Caminar en cinta", "Cardio", "Cinta", type = ExerciseType.CARDIO)
         exerciseRepository.addExercise(exercise)

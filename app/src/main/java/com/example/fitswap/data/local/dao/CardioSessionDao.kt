@@ -17,4 +17,7 @@ interface CardioSessionDao {
 
     @Query("DELETE FROM cardio_sessions WHERE exerciseId = :exerciseId")
     suspend fun deleteAllForExercise(exerciseId: String)
+
+    @Query("DELETE FROM cardio_sessions WHERE id = :id")
+    suspend fun deleteSession(id: String)
 }

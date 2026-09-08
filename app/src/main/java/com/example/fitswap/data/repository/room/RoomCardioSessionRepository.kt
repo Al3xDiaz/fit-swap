@@ -21,4 +21,12 @@ class RoomCardioSessionRepository @Inject constructor(
     override suspend fun addSession(session: CardioSession) {
         cardioSessionDao.insert(session.toEntity())
     }
+
+    override suspend fun updateSession(session: CardioSession) {
+        cardioSessionDao.insert(session.toEntity()) // upsert por id (REPLACE), igual que addSession
+    }
+
+    override suspend fun deleteSession(id: String) {
+        cardioSessionDao.deleteSession(id)
+    }
 }

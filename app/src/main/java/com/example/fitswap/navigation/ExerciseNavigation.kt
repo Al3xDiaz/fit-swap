@@ -7,12 +7,14 @@ import androidx.navigation.compose.composable
 import androidx.navigation.navArgument
 import com.example.fitswap.ui.common.BackNavigationIcon
 import com.example.fitswap.ui.common.MenuNavigationIcon
+import com.example.fitswap.ui.screens.exercises.CardioSessionEditScreen
 import com.example.fitswap.ui.screens.exercises.ExerciseCatalogScreen
 import com.example.fitswap.ui.screens.exercises.ExerciseFormScreen
 import com.example.fitswap.ui.screens.exercises.ExerciseHistoryScreen
 import com.example.fitswap.ui.screens.exercises.NEW_EXERCISE_ID
 
 private const val CATALOG_EXERCISE_ID_ARG = "exerciseId"
+private const val CARDIO_SESSION_ID_ARG = "sessionId"
 private const val EXERCISE_PICKER_ROUTE = "exercisePicker"
 
 /** Clave del resultado que `exercisePickerScreen` deja en el backstack entry anterior (Editar rutina). */
@@ -20,6 +22,7 @@ const val PICKED_EXERCISE_ID_KEY = "pickedExerciseId"
 
 private fun exerciseHistoryRoute(exerciseId: String) = "exerciseHistory/$exerciseId"
 private fun exerciseFormRoute(exerciseId: String) = "exerciseForm/$exerciseId"
+private fun cardioSessionEditRoute(exerciseId: String, sessionId: String) = "cardioSessionEdit/$exerciseId/$sessionId"
 
 fun NavGraphBuilder.exerciseCatalogScreen(navController: NavHostController, onMenuClick: () -> Unit) {
     composable(Destination.Exercises.route) {
@@ -40,7 +43,22 @@ fun NavGraphBuilder.exerciseHistoryScreen(navController: NavHostController) {
         ExerciseHistoryScreen(
             onBack = { navController.popBackStack() },
             onEdit = { navController.navigate(exerciseFormRoute(exerciseId)) },
+            onEditCardioSession = { sessionId ->
+                navController.navigate(cardioSessionEditRoute(exerciseId, sessionId))
+            },
         )
+    }
+}
+
+fun NavGraphBuilder.cardioSessionEditScreen(navController: NavHostController) {
+    composable(
+        route = "cardioSessionEdit/{$CATALOG_EXERCISE_ID_ARG}/{$CARDIO_SESSION_ID_ARG}",
+        arguments = listOf(
+            navArgument(CATALOG_EXERCISE_ID_ARG) { type = NavType.StringType },
+            navArgument(CARDIO_SESSION_ID_ARG) { type = NavType.StringType },
+        )
+    ) {
+        CardioSessionEditScreen(onClose = { navController.popBackStack() })
     }
 }
 

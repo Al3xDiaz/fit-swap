@@ -18,8 +18,24 @@ class FakeCardioSessionRepository @Inject constructor() : CardioSessionRepositor
         sessionsByExercise.map { it[exerciseId].orEmpty() }
 
     override suspend fun addSession(session: CardioSession) {
+        upsert(session)
+    }
+
+    override suspend fun updateSession(session: CardioSession) {
+        upsert(session)
+    }
+
+    override suspend fun deleteSession(id: String) {
         sessionsByExercise.update { current ->
-            val existing = current[session.exerciseId].orEmpty()
+            current.mapValues { (_, sessions) -> sessions.filterNot { it.id == id } }
+        }
+    }
+
+    /** Upsert por id, igual que hace Room con `OnConflictStrategy.REPLACE` — reemplaza la sesión
+     * existente con el mismo id en vez de appendear siempre una nueva. */
+    private fun upsert(session: CardioSession) {
+        sessionsByExercise.update { current ->
+            val existing = current[session.exerciseId].orEmpty().filterNot { it.id == session.id }
             current + (session.exerciseId to (existing + session))
         }
     }

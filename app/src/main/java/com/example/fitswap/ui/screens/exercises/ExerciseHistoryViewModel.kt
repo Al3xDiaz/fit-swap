@@ -76,4 +76,8 @@ class ExerciseHistoryViewModel @Inject constructor(
             }.collect {}
         }
     }
+
+    fun deleteCardioSession(sessionId: String) {
+        viewModelScope.launch { cardioSessionRepository.deleteSession(sessionId) }
+    }
 }
