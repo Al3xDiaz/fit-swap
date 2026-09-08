@@ -2,6 +2,7 @@ package com.example.fitswap.ui.screens.measurements
 
 import androidx.compose.ui.test.assertCountEquals
 import androidx.compose.ui.test.assertIsDisplayed
+import androidx.compose.ui.test.assertTextEquals
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
 import androidx.compose.ui.test.onAllNodesWithTag
 import androidx.compose.ui.test.onNodeWithContentDescription
@@ -61,5 +62,23 @@ class BodyMeasurementsFlowTest {
 
         // 81 kg / 1.80 m^2 = 25.0 -> categoría "sobrepeso" (el corte OMS de "normal" es < 25.0).
         composeTestRule.onNodeWithText("IMC: 25.0 (sobrepeso)").assertIsDisplayed()
+    }
+
+    @Test
+    fun abrirLaGuiaDeMedicionMuestraLosItemsNuevosYVolverRegresaAlFormulario() {
+        composeTestRule.onNodeWithContentDescription("Abrir menú").performClick()
+        composeTestRule.onNodeWithTag("drawerItem_measurements").performClick()
+        composeTestRule.onNodeWithTag("addMeasurementButton").performClick()
+
+        composeTestRule.onNodeWithTag("measurementGuideButton").performClick()
+        composeTestRule.onNodeWithTag("appTopBarTitle").assertTextEquals("Cómo medir")
+        composeTestRule.onNodeWithTag("measurementGuideItem_wrist").assertIsDisplayed()
+        composeTestRule.onNodeWithTag("measurementGuideItem_glute").assertIsDisplayed()
+        composeTestRule.onNodeWithTag("measurementGuideItem_forearm").assertIsDisplayed()
+        composeTestRule.onNodeWithTag("measurementGuideItem_shoulder").assertIsDisplayed()
+
+        composeTestRule.onNodeWithContentDescription("Volver").performClick()
+        composeTestRule.onNodeWithTag("appTopBarTitle").assertTextEquals("Nueva medición")
+        composeTestRule.onNodeWithTag("weightField").assertIsDisplayed()
     }
 }

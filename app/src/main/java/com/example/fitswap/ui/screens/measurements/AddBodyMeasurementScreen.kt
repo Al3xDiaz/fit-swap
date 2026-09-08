@@ -9,7 +9,11 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Info
 import androidx.compose.material3.Button
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
@@ -32,13 +36,24 @@ import kotlinx.coroutines.withContext
 @Composable
 fun AddBodyMeasurementScreen(
     onClose: () -> Unit,
+    onOpenGuide: () -> Unit,
     viewModel: AddBodyMeasurementViewModel = hiltViewModel(),
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val scope = rememberCoroutineScope()
 
     Scaffold(
-        topBar = { AppTopBar(title = "Nueva medición", navigationIcon = { BackNavigationIcon(onBack = onClose) }) }
+        topBar = {
+            AppTopBar(
+                title = "Nueva medición",
+                navigationIcon = { BackNavigationIcon(onBack = onClose) },
+                actions = {
+                    IconButton(onClick = onOpenGuide, modifier = Modifier.testTag("measurementGuideButton")) {
+                        Icon(Icons.Filled.Info, contentDescription = "Cómo medir")
+                    }
+                }
+            )
+        }
     ) { innerPadding ->
         val decimalKeyboard = KeyboardOptions(keyboardType = KeyboardType.Decimal)
 
