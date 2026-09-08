@@ -96,6 +96,7 @@ fun EditRoutineScreen(
             else -> RoutineEditorBody(
                 modifier = Modifier.padding(innerPadding),
                 routine = currentRoutine,
+                errorMessage = uiState.errorMessage,
                 onRenameDay = viewModel::renameDay,
                 onRemoveDay = viewModel::removeDay,
                 onAddDay = viewModel::addDay,
@@ -154,6 +155,7 @@ private fun NewRoutineNameForm(modifier: Modifier = Modifier, onCreate: (String)
 private fun RoutineEditorBody(
     modifier: Modifier = Modifier,
     routine: Routine,
+    errorMessage: String?,
     onRenameDay: (dayId: String, newName: String) -> Unit,
     onRemoveDay: (dayId: String) -> Unit,
     onAddDay: (name: String, dayOfWeek: DayOfWeek?) -> Unit,
@@ -169,6 +171,13 @@ private fun RoutineEditorBody(
             .padding(16.dp),
         verticalArrangement = Arrangement.spacedBy(20.dp)
     ) {
+        if (errorMessage != null) {
+            Text(
+                text = errorMessage,
+                color = MaterialTheme.colorScheme.error,
+                modifier = Modifier.testTag("addExerciseErrorLabel")
+            )
+        }
         routine.days.forEach { day ->
             DayEditorSection(
                 day = day,

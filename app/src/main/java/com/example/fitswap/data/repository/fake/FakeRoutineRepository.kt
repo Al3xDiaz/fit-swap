@@ -75,8 +75,8 @@ class FakeRoutineRepository @Inject constructor() : RoutineRepository {
         updateRoutine(routineId) { routine -> routine.copy(days = routine.days.filterNot { it.id == dayId }) }
     }
 
-    override suspend fun addExerciseToDay(routineId: String, dayId: String, exerciseId: String) {
-        val exercise = ExerciseCatalog.allExercises.find { it.id == exerciseId } ?: return
+    override suspend fun addExerciseToDay(routineId: String, dayId: String, exerciseId: String): Boolean {
+        val exercise = ExerciseCatalog.allExercises.find { it.id == exerciseId } ?: return false
         updateDay(routineId, dayId) { day ->
             val newRoutineExercise = RoutineExercise(
                 id = uniqueRoutineExerciseId(day, exercise.id),
@@ -88,6 +88,7 @@ class FakeRoutineRepository @Inject constructor() : RoutineRepository {
             )
             day.copy(exercises = day.exercises + newRoutineExercise)
         }
+        return true
     }
 
     override suspend fun removeExerciseFromDay(routineId: String, dayId: String, routineExerciseId: String) {

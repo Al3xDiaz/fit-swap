@@ -25,8 +25,11 @@ interface RoutineRepository {
     suspend fun setDayOfWeek(routineId: String, dayId: String, dayOfWeek: DayOfWeek)
     suspend fun removeDay(routineId: String, dayId: String)
 
-    /** [exerciseId] es el id del catálogo (`Exercise.id`), no de un `RoutineExercise`. */
-    suspend fun addExerciseToDay(routineId: String, dayId: String, exerciseId: String)
+    /**
+     * [exerciseId] es el id del catálogo (`Exercise.id`), no de un `RoutineExercise`.
+     * Devuelve `false` sin insertar nada si [exerciseId] no existe en el catálogo.
+     */
+    suspend fun addExerciseToDay(routineId: String, dayId: String, exerciseId: String): Boolean
     suspend fun removeExerciseFromDay(routineId: String, dayId: String, routineExerciseId: String)
     suspend fun moveExercise(routineId: String, dayId: String, routineExerciseId: String, direction: MoveDirection)
 

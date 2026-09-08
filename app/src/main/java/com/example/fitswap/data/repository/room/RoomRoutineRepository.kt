@@ -104,27 +104,29 @@ class RoomRoutineRepository @Inject constructor(
         routineDao.removeDay(dayId)
     }
 
-    override suspend fun addExerciseToDay(routineId: String, dayId: String, exerciseId: String) {
-        val exercise = exerciseDao.getExercise(exerciseId) ?: return
-        val existing = routineDao.getExercisesForDay(dayId)
-        val newId = uniqueRoutineExerciseId(dayId, exercise.id, existing.map { it.id })
-        val orderIndex = routineDao.maxExerciseOrderIndex(dayId) + 1
-        routineDao.insertRoutineExercise(
-            RoutineExerciseEntity(
-                id = newId,
-                dayId = dayId,
-                exerciseId = exercise.id,
-                approachSets = DEFAULT_NEW_EXERCISE_APPROACH_SETS,
-                effectiveSets = DEFAULT_NEW_EXERCISE_EFFECTIVE_SETS,
-                effectiveRepsLabel = DEFAULT_NEW_EXERCISE_REPS_LABEL,
-                approachGuideline = null,
-                restLabel = DEFAULT_NEW_EXERCISE_REST_LABEL,
-                usesStraps = false,
-                notes = null,
-                orderIndex = orderIndex,
+    override suspend fun addExerciseToDay(routineId: String, dayId: String, exerciseId: String): Boolean =
+        database.withTransaction {
+            val exercise = exerciseDao.getExercise(exerciseId) ?: return@withTransaction false
+            val existing = routineDao.getExercisesForDay(dayId)
+            val newId = uniqueRoutineExerciseId(dayId, exercise.id, existing.map { it.id })
+            val orderIndex = routineDao.maxExerciseOrderIndex(dayId) + 1
+            routineDao.insertRoutineExercise(
+                RoutineExerciseEntity(
+                    id = newId,
+                    dayId = dayId,
+                    exerciseId = exercise.id,
+                    approachSets = DEFAULT_NEW_EXERCISE_APPROACH_SETS,
+                    effectiveSets = DEFAULT_NEW_EXERCISE_EFFECTIVE_SETS,
+                    effectiveRepsLabel = DEFAULT_NEW_EXERCISE_REPS_LABEL,
+                    approachGuideline = null,
+                    restLabel = DEFAULT_NEW_EXERCISE_REST_LABEL,
+                    usesStraps = false,
+                    notes = null,
+                    orderIndex = orderIndex,
+                )
             )
-        )
-    }
+            true
+        }
 
     override suspend fun removeExerciseFromDay(routineId: String, dayId: String, routineExerciseId: String) {
         routineDao.removeRoutineExercise(routineExerciseId)

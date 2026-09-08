@@ -5,24 +5,31 @@ import com.example.fitswap.MainDispatcherRule
 import com.example.fitswap.data.repository.MoveDirection
 import com.example.fitswap.data.repository.fake.ExerciseCatalog
 import com.example.fitswap.data.repository.fake.FakeRoutineRepository
+import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.test.UnconfinedTestDispatcher
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
 
 private const val PUSH_DAY_ID = "default-martes"
+private const val NON_EXISTENT_EXERCISE_ID = "no-existe-en-el-catalogo"
 
 class EditRoutineViewModelTest {
 
     @get:Rule
     val mainDispatcherRule = MainDispatcherRule()
 
+    // Igual que `viewModelScope` bajo `MainDispatcherRule`: ejecuta las corrutinas lanzadas de
+    // forma inmediata/eager, así los tests no necesitan `advanceUntilIdle()`.
     private fun viewModel(routineId: String, repository: FakeRoutineRepository = FakeRoutineRepository()) =
         EditRoutineViewModel(
             savedStateHandle = SavedStateHandle(mapOf("routineId" to routineId)),
             routineRepository = repository,
+            appScope = CoroutineScope(UnconfinedTestDispatcher()),
         )
 
     @Test
@@ -112,6 +119,30 @@ class EditRoutineViewModelTest {
         }
         val added = state.routine!!.days.first { it.id == PUSH_DAY_ID }.exercises.last()
         assertEquals(ExerciseCatalog.caminarEnCinta, added.exercise)
+    }
+
+    @Test
+    fun `agregar un ejercicio que no existe en el catalogo setea un mensaje de error`() = runTest {
+        val viewModel = viewModel("default")
+        viewModel.uiState.first { !it.isLoading }
+
+        viewModel.addExercise(PUSH_DAY_ID, NON_EXISTENT_EXERCISE_ID)
+
+        val state = viewModel.uiState.first { it.errorMessage != null }
+        assertTrue(state.errorMessage!!.isNotBlank())
+    }
+
+    @Test
+    fun `agregar un ejercicio valido deja el mensaje de error en null`() = runTest {
+        val viewModel = viewModel("default")
+        viewModel.uiState.first { !it.isLoading }
+
+        viewModel.addExercise(PUSH_DAY_ID, ExerciseCatalog.caminarEnCinta.id)
+
+        val state = viewModel.uiState.first {
+            it.routine!!.days.first { day -> day.id == PUSH_DAY_ID }.exercises.any { it.exercise == ExerciseCatalog.caminarEnCinta }
+        }
+        assertNull(state.errorMessage)
     }
 
     @Test

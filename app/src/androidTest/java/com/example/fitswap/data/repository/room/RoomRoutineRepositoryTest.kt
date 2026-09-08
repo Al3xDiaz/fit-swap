@@ -48,6 +48,28 @@ class RoomRoutineRepositoryTest {
     }
 
     @Test
+    fun agregarUnEjercicioInexistenteDevuelveFalseYNoInsertaNada() = runBlocking {
+        val (routineId, dayId) = freshRoutineWithDay()
+
+        val added = repository.addExerciseToDay(routineId, dayId, "no-existe-en-el-catalogo")
+
+        assertEquals(false, added)
+        val exercises = repository.observeRoutine(routineId).first()!!.days.single().exercises
+        assertEquals(0, exercises.size)
+    }
+
+    @Test
+    fun agregarUnEjercicioValidoDevuelveTrueYQuedaPersistido() = runBlocking {
+        val (routineId, dayId) = freshRoutineWithDay()
+
+        val added = repository.addExerciseToDay(routineId, dayId, "press-de-pecho")
+
+        assertEquals(true, added)
+        val exercises = repository.observeRoutine(routineId).first()!!.days.single().exercises
+        assertEquals(listOf("press-de-pecho"), exercises.map { it.exercise.id })
+    }
+
+    @Test
     fun agregarUnEjercicioDosVecesGeneraIdsUnicos() = runBlocking {
         val (routineId, dayId) = freshRoutineWithDay()
 

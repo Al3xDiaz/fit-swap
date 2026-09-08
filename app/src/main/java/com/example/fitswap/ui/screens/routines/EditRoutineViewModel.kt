@@ -3,12 +3,14 @@ package com.example.fitswap.ui.screens.routines
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.example.fitswap.data.di.ApplicationScope
 import com.example.fitswap.data.repository.MoveDirection
 import com.example.fitswap.data.repository.RoutineRepository
 import com.example.fitswap.domain.model.Routine
 import dagger.hilt.android.lifecycle.HiltViewModel
 import java.time.DayOfWeek
 import javax.inject.Inject
+import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -22,12 +24,14 @@ data class EditRoutineUiState(
     val isLoading: Boolean = true,
     val needsName: Boolean = false,
     val routine: Routine? = null,
+    val errorMessage: String? = null,
 )
 
 @HiltViewModel
 class EditRoutineViewModel @Inject constructor(
     savedStateHandle: SavedStateHandle,
     private val routineRepository: RoutineRepository,
+    @ApplicationScope private val appScope: CoroutineScope,
 ) : ViewModel() {
 
     private val initialRoutineId: String = checkNotNull(savedStateHandle["routineId"])
@@ -72,23 +76,28 @@ class EditRoutineViewModel @Inject constructor(
     fun addDay(name: String, dayOfWeek: DayOfWeek? = null) {
         val id = routineId ?: return
         if (name.isBlank()) return
-        viewModelScope.launch { routineRepository.addDay(id, name.trim(), dayOfWeek) }
+        appScope.launch { routineRepository.addDay(id, name.trim(), dayOfWeek) }
     }
 
     fun renameDay(dayId: String, newName: String) {
         val id = routineId ?: return
         if (newName.isBlank()) return
-        viewModelScope.launch { routineRepository.renameDay(id, dayId, newName.trim()) }
+        appScope.launch { routineRepository.renameDay(id, dayId, newName.trim()) }
     }
 
     fun removeDay(dayId: String) {
         val id = routineId ?: return
-        viewModelScope.launch { routineRepository.removeDay(id, dayId) }
+        appScope.launch { routineRepository.removeDay(id, dayId) }
     }
 
     fun addExercise(dayId: String, exerciseId: String) {
         val id = routineId ?: return
-        viewModelScope.launch { routineRepository.addExerciseToDay(id, dayId, exerciseId) }
+        appScope.launch {
+            val added = routineRepository.addExerciseToDay(id, dayId, exerciseId)
+            _uiState.update {
+                it.copy(errorMessage = if (added) null else "No se pudo agregar el ejercicio: no existe en el catálogo.")
+            }
+        }
     }
 
     fun beginPickingExerciseFor(dayId: String) {
@@ -103,16 +112,16 @@ class EditRoutineViewModel @Inject constructor(
 
     fun removeExercise(dayId: String, routineExerciseId: String) {
         val id = routineId ?: return
-        viewModelScope.launch { routineRepository.removeExerciseFromDay(id, dayId, routineExerciseId) }
+        appScope.launch { routineRepository.removeExerciseFromDay(id, dayId, routineExerciseId) }
     }
 
     fun moveExercise(dayId: String, routineExerciseId: String, direction: MoveDirection) {
         val id = routineId ?: return
-        viewModelScope.launch { routineRepository.moveExercise(id, dayId, routineExerciseId, direction) }
+        appScope.launch { routineRepository.moveExercise(id, dayId, routineExerciseId, direction) }
     }
 
     fun deleteRoutine() {
         val id = routineId ?: return
-        viewModelScope.launch { routineRepository.deleteRoutine(id) }
+        appScope.launch { routineRepository.deleteRoutine(id) }
     }
 }
