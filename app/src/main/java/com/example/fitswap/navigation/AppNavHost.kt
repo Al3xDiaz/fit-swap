@@ -99,6 +99,7 @@ fun AppNavHost(navController: NavHostController = rememberNavController()) {
             exerciseFormScreen(navController = navController)
             exercisePickerScreen(navController = navController)
             cardioSessionEditScreen(navController = navController)
+            historySessionDetailScreen(navController = navController)
             summaryScreen(
                 navController = navController,
                 onMenuClick = { scope.launch { drawerState.open() } }

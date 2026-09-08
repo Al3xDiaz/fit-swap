@@ -6,12 +6,22 @@ import androidx.room.OnConflictStrategy
 import androidx.room.Query
 import androidx.room.Transaction
 import com.example.fitswap.data.local.entity.HistoryPointEntity
+import java.time.LocalDate
 import kotlinx.coroutines.flow.Flow
 
 @Dao
 interface HistoryDao {
     @Query("SELECT * FROM history_points WHERE exerciseId = :exerciseId")
     fun observeHistory(exerciseId: String): Flow<List<HistoryPointEntity>>
+
+    /** Todos los puntos (calentamiento/aproximación/efectivos) de un ejercicio en una fecha —
+     * usado por la pantalla de detalle del historial para editarlos/borrarlos individualmente. */
+    @Query("SELECT * FROM history_points WHERE exerciseId = :exerciseId AND date = :date")
+    fun observeHistoryForDate(exerciseId: String, date: LocalDate): Flow<List<HistoryPointEntity>>
+
+    /** Borra todos los puntos de esa fecha — usado al eliminar un registro del historial. */
+    @Query("DELETE FROM history_points WHERE exerciseId = :exerciseId AND date = :date")
+    suspend fun deleteHistoryForDate(exerciseId: String, date: LocalDate)
 
     @Query("SELECT * FROM history_points")
     fun observeAllHistory(): Flow<List<HistoryPointEntity>>

@@ -17,6 +17,10 @@ interface NotesRepository {
      * de ese día en vez de acumular una lista. */
     suspend fun setNote(exerciseId: String, date: LocalDate, text: String)
 
+    /** Borra la nota de [exerciseId] para [date], si existe — usado al eliminar un registro
+     * completo del historial de ese día. */
+    suspend fun deleteNote(exerciseId: String, date: LocalDate)
+
     /** Notas de todos los ejercicios combinadas — usado por Herramientas (M9) para exportar. */
     fun observeAllNotes(): Flow<List<Note>>
 

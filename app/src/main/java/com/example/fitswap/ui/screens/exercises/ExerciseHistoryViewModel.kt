@@ -80,4 +80,13 @@ class ExerciseHistoryViewModel @Inject constructor(
     fun deleteCardioSession(sessionId: String) {
         viewModelScope.launch { cardioSessionRepository.deleteSession(sessionId) }
     }
+
+    /** Elimina un registro de fuerza completo: todas las series (efectivas y de aproximación) y
+     * la nota de ese día. */
+    fun deleteHistorySession(date: LocalDate) {
+        viewModelScope.launch {
+            historyRepository.deleteHistoryForDate(exerciseId, date)
+            notesRepository.deleteNote(exerciseId, date)
+        }
+    }
 }

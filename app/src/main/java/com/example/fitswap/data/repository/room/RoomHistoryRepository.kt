@@ -5,6 +5,7 @@ import com.example.fitswap.data.local.entity.toDomain
 import com.example.fitswap.data.local.entity.toEntity
 import com.example.fitswap.data.repository.HistoryRepository
 import com.example.fitswap.domain.model.HistoryPoint
+import java.time.LocalDate
 import javax.inject.Inject
 import javax.inject.Singleton
 import kotlinx.coroutines.flow.Flow
@@ -19,11 +20,18 @@ class RoomHistoryRepository @Inject constructor(private val historyDao: HistoryD
     override fun observeHistory(exerciseId: String): Flow<List<HistoryPoint>> =
         historyDao.observeHistory(exerciseId).map { entities -> entities.map { it.toDomain() } }
 
+    override fun observeHistoryForDate(exerciseId: String, date: LocalDate): Flow<List<HistoryPoint>> =
+        historyDao.observeHistoryForDate(exerciseId, date).map { entities -> entities.map { it.toDomain() } }
+
     override fun observeAllHistory(): Flow<List<HistoryPoint>> =
         historyDao.observeAllHistory().map { entities -> entities.map { it.toDomain() } }
 
     override suspend fun addHistoryPoint(point: HistoryPoint) {
         historyDao.insert(point.toEntity())
+    }
+
+    override suspend fun updateHistoryPoint(point: HistoryPoint) {
+        historyDao.insert(point.toEntity()) // upsert por id (REPLACE), igual que addHistoryPoint
     }
 
     override suspend fun replaceAllHistory(points: List<HistoryPoint>) {
@@ -32,5 +40,9 @@ class RoomHistoryRepository @Inject constructor(private val historyDao: HistoryD
 
     override suspend fun deleteHistoryPoints(ids: List<String>) {
         if (ids.isNotEmpty()) historyDao.deleteByIds(ids)
+    }
+
+    override suspend fun deleteHistoryForDate(exerciseId: String, date: LocalDate) {
+        historyDao.deleteHistoryForDate(exerciseId, date)
     }
 }

@@ -25,14 +25,18 @@ class FakeHistoryRepository @Inject constructor() : HistoryRepository {
     override fun observeHistory(exerciseId: String): Flow<List<HistoryPoint>> =
         historyByExercise.map { it[exerciseId].orEmpty() }
 
+    override fun observeHistoryForDate(exerciseId: String, date: LocalDate): Flow<List<HistoryPoint>> =
+        historyByExercise.map { it[exerciseId].orEmpty().filter { point -> point.date == date } }
+
     override fun observeAllHistory(): Flow<List<HistoryPoint>> =
         historyByExercise.map { it.values.flatten() }
 
     override suspend fun addHistoryPoint(point: HistoryPoint) {
-        historyByExercise.update { current ->
-            val existing = current[point.exerciseId].orEmpty()
-            current + (point.exerciseId to (existing + point))
-        }
+        upsert(point)
+    }
+
+    override suspend fun updateHistoryPoint(point: HistoryPoint) {
+        upsert(point)
     }
 
     override suspend fun replaceAllHistory(points: List<HistoryPoint>) {
@@ -42,6 +46,21 @@ class FakeHistoryRepository @Inject constructor() : HistoryRepository {
     override suspend fun deleteHistoryPoints(ids: List<String>) {
         historyByExercise.update { current ->
             current.mapValues { (_, points) -> points.filterNot { it.id in ids } }
+        }
+    }
+
+    override suspend fun deleteHistoryForDate(exerciseId: String, date: LocalDate) {
+        historyByExercise.update { current ->
+            val existing = current[exerciseId].orEmpty().filterNot { it.date == date }
+            current + (exerciseId to existing)
+        }
+    }
+
+    /** Upsert por id, igual que hace Room con `OnConflictStrategy.REPLACE`. */
+    private fun upsert(point: HistoryPoint) {
+        historyByExercise.update { current ->
+            val existing = current[point.exerciseId].orEmpty().filterNot { it.id == point.id }
+            current + (point.exerciseId to (existing + point))
         }
     }
 }

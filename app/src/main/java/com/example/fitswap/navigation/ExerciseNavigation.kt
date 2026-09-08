@@ -11,10 +11,13 @@ import com.example.fitswap.ui.screens.exercises.CardioSessionEditScreen
 import com.example.fitswap.ui.screens.exercises.ExerciseCatalogScreen
 import com.example.fitswap.ui.screens.exercises.ExerciseFormScreen
 import com.example.fitswap.ui.screens.exercises.ExerciseHistoryScreen
+import com.example.fitswap.ui.screens.exercises.HistorySessionDetailScreen
 import com.example.fitswap.ui.screens.exercises.NEW_EXERCISE_ID
+import java.time.LocalDate
 
 private const val CATALOG_EXERCISE_ID_ARG = "exerciseId"
 private const val CARDIO_SESSION_ID_ARG = "sessionId"
+private const val HISTORY_DATE_ARG = "date"
 private const val EXERCISE_PICKER_ROUTE = "exercisePicker"
 
 /** Clave del resultado que `exercisePickerScreen` deja en el backstack entry anterior (Editar rutina). */
@@ -23,6 +26,7 @@ const val PICKED_EXERCISE_ID_KEY = "pickedExerciseId"
 private fun exerciseHistoryRoute(exerciseId: String) = "exerciseHistory/$exerciseId"
 private fun exerciseFormRoute(exerciseId: String) = "exerciseForm/$exerciseId"
 private fun cardioSessionEditRoute(exerciseId: String, sessionId: String) = "cardioSessionEdit/$exerciseId/$sessionId"
+private fun historySessionDetailRoute(exerciseId: String, date: LocalDate) = "historySessionDetail/$exerciseId/$date"
 
 fun NavGraphBuilder.exerciseCatalogScreen(navController: NavHostController, onMenuClick: () -> Unit) {
     composable(Destination.Exercises.route) {
@@ -46,6 +50,9 @@ fun NavGraphBuilder.exerciseHistoryScreen(navController: NavHostController) {
             onEditCardioSession = { sessionId ->
                 navController.navigate(cardioSessionEditRoute(exerciseId, sessionId))
             },
+            onEditHistorySession = { date ->
+                navController.navigate(historySessionDetailRoute(exerciseId, date))
+            },
         )
     }
 }
@@ -59,6 +66,18 @@ fun NavGraphBuilder.cardioSessionEditScreen(navController: NavHostController) {
         )
     ) {
         CardioSessionEditScreen(onClose = { navController.popBackStack() })
+    }
+}
+
+fun NavGraphBuilder.historySessionDetailScreen(navController: NavHostController) {
+    composable(
+        route = "historySessionDetail/{$CATALOG_EXERCISE_ID_ARG}/{$HISTORY_DATE_ARG}",
+        arguments = listOf(
+            navArgument(CATALOG_EXERCISE_ID_ARG) { type = NavType.StringType },
+            navArgument(HISTORY_DATE_ARG) { type = NavType.StringType },
+        )
+    ) {
+        HistorySessionDetailScreen(onClose = { navController.popBackStack() })
     }
 }
 

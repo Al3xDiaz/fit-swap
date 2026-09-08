@@ -28,6 +28,9 @@ interface NoteDao {
     @Query("DELETE FROM notes WHERE exerciseId = :exerciseId")
     suspend fun deleteAllForExercise(exerciseId: String)
 
+    @Query("DELETE FROM notes WHERE id = :id")
+    suspend fun deleteById(id: String)
+
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertAll(notes: List<NoteEntity>)
 

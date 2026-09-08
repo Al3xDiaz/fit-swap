@@ -36,4 +36,12 @@ class FakeNotesRepository @Inject constructor() : NotesRepository {
     override suspend fun replaceAllNotes(notes: List<Note>) {
         notesByExercise.value = notes.groupBy { it.exerciseId }
     }
+
+    override suspend fun deleteNote(exerciseId: String, date: LocalDate) {
+        val id = noteId(exerciseId, date)
+        notesByExercise.update { current ->
+            val existing = current[exerciseId].orEmpty().filterNot { it.id == id }
+            current + (exerciseId to existing)
+        }
+    }
 }

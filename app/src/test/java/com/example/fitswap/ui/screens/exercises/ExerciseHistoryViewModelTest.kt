@@ -20,11 +20,13 @@ import org.junit.Test
 private fun viewModel(
     exerciseId: String,
     cardioSessionRepository: FakeCardioSessionRepository = FakeCardioSessionRepository(),
+    historyRepository: FakeHistoryRepository = FakeHistoryRepository(),
+    notesRepository: FakeNotesRepository = FakeNotesRepository(),
 ) = ExerciseHistoryViewModel(
     savedStateHandle = SavedStateHandle(mapOf("exerciseId" to exerciseId)),
     exerciseRepository = FakeExerciseRepository(),
-    historyRepository = FakeHistoryRepository(),
-    notesRepository = FakeNotesRepository(),
+    historyRepository = historyRepository,
+    notesRepository = notesRepository,
     cardioSessionRepository = cardioSessionRepository,
 )
 
@@ -70,5 +72,22 @@ class ExerciseHistoryViewModelTest {
 
         val sessions = cardioSessionRepository.observeSessions(ExerciseCatalog.caminarEnCinta.id).first()
         assertTrue(sessions.isEmpty())
+    }
+
+    @Test
+    fun `deleteHistorySession borra las series y la nota de ese dia sin afectar otras fechas`() = runTest {
+        val historyRepository = FakeHistoryRepository()
+        val notesRepository = FakeNotesRepository()
+        val date = LocalDate.of(2026, 8, 18)
+        notesRepository.setNote("press-de-pecho", date, "Nota del día")
+        val viewModel = viewModel("press-de-pecho", historyRepository = historyRepository, notesRepository = notesRepository)
+        viewModel.uiState.first { !it.isLoading }
+
+        viewModel.deleteHistorySession(date)
+
+        assertTrue(historyRepository.observeHistoryForDate("press-de-pecho", date).first().isEmpty())
+        assertNull(notesRepository.observeNote("press-de-pecho", date).first())
+        // Otra fecha con historial sigue intacta.
+        assertTrue(historyRepository.observeHistory("press-de-pecho").first().isNotEmpty())
     }
 }

@@ -36,12 +36,14 @@ import com.example.fitswap.domain.model.ExerciseType
 import com.example.fitswap.ui.common.AppTopBar
 import com.example.fitswap.ui.common.BackNavigationIcon
 import com.example.fitswap.ui.common.ConfirmDialog
+import java.time.LocalDate
 
 @Composable
 fun ExerciseHistoryScreen(
     onBack: () -> Unit,
     onEdit: () -> Unit,
     onEditCardioSession: (sessionId: String) -> Unit,
+    onEditHistorySession: (date: LocalDate) -> Unit,
     viewModel: ExerciseHistoryViewModel = hiltViewModel(),
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
@@ -137,7 +139,12 @@ fun ExerciseHistoryScreen(
                 )
                 LazyColumn {
                     items(uiState.recentSessions, key = { it.date }) { session ->
-                        SessionRow(session, note = uiState.notesByDate[session.date])
+                        SessionRow(
+                            session,
+                            note = uiState.notesByDate[session.date],
+                            onEdit = { onEditHistorySession(session.date) },
+                            onDelete = { viewModel.deleteHistorySession(session.date) },
+                        )
                         HorizontalDivider()
                     }
                 }
@@ -193,25 +200,51 @@ private fun CardioSessionRow(session: CardioSession, onEdit: () -> Unit, onDelet
 }
 
 @Composable
-private fun SessionRow(session: HistorySession, note: String?) {
-    Column(
+private fun SessionRow(session: HistorySession, note: String?, onEdit: () -> Unit, onDelete: () -> Unit) {
+    var showDeleteConfirm by remember { mutableStateOf(false) }
+
+    Row(
         modifier = Modifier
             .fillMaxWidth()
             .testTag("historySessionRow_${session.date}")
-            .padding(vertical = 8.dp)
+            .padding(vertical = 8.dp),
+        verticalAlignment = Alignment.CenterVertically
     ) {
-        Text(session.date.toString(), style = MaterialTheme.typography.bodyLarge)
-        Text(
-            text = "${session.setCount} ${seriesLabel(session.setCount)} · ${formatWeight(session.volumeKg)} kg",
-            style = MaterialTheme.typography.bodyMedium
-        )
-        if (!note.isNullOrBlank()) {
+        Column(modifier = Modifier.weight(1f)) {
+            Text(session.date.toString(), style = MaterialTheme.typography.bodyLarge)
             Text(
-                text = "📝 $note",
-                style = MaterialTheme.typography.bodySmall,
-                modifier = Modifier.testTag("historySessionNote_${session.date}")
+                text = "${session.setCount} ${seriesLabel(session.setCount)} · ${formatWeight(session.volumeKg)} kg",
+                style = MaterialTheme.typography.bodyMedium
             )
+            if (!note.isNullOrBlank()) {
+                Text(
+                    text = "📝 $note",
+                    style = MaterialTheme.typography.bodySmall,
+                    modifier = Modifier.testTag("historySessionNote_${session.date}")
+                )
+            }
         }
+        IconButton(onClick = onEdit, modifier = Modifier.testTag("editHistoryButton_${session.date}")) {
+            Icon(Icons.Default.Edit, contentDescription = "Editar registro")
+        }
+        IconButton(
+            onClick = { showDeleteConfirm = true },
+            modifier = Modifier.testTag("deleteHistoryButton_${session.date}")
+        ) {
+            Icon(Icons.Default.Delete, contentDescription = "Eliminar registro")
+        }
+    }
+
+    if (showDeleteConfirm) {
+        ConfirmDialog(
+            title = "¿Eliminar registro?",
+            message = "Se eliminarán todas las series y la nota de este día. No se puede deshacer.",
+            onConfirm = {
+                showDeleteConfirm = false
+                onDelete()
+            },
+            onCancel = { showDeleteConfirm = false }
+        )
     }
 }
 

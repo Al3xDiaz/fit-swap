@@ -29,6 +29,10 @@ class RoomNotesRepository @Inject constructor(private val noteDao: NoteDao) : No
         noteDao.insert(note.toEntity())
     }
 
+    override suspend fun deleteNote(exerciseId: String, date: LocalDate) {
+        noteDao.deleteById(noteId(exerciseId, date))
+    }
+
     override suspend fun replaceAllNotes(notes: List<Note>) {
         noteDao.replaceAll(notes.map { it.toEntity() })
     }
