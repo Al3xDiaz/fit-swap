@@ -336,6 +336,25 @@ class ActiveExerciseViewModelTest {
     }
 
     @Test
+    fun `terminar la rutina conservando el progreso no borra las series ya registradas, a diferencia de endRoutine`() = runTest {
+        val setRepository = FakeSetRepository()
+        val sessionRepository = FakeWorkoutSessionRepository()
+        sessionRepository.substituteExercise(PRESS_MILITAR_ID, ExerciseCatalog.pressDeHombroEnMaquina)
+        val viewModel = viewModel(
+            EXTENSION_TRICEPS_OVERHEAD_ID,
+            setRepository = setRepository,
+            workoutSessionRepository = sessionRepository,
+        )
+        viewModel.uiState.first { !it.isLoading }
+
+        repeat(2) { viewModel.registerSet() } // progreso a medias del ultimo ejercicio de fuerza, nunca se completa
+        viewModel.finishRoutineKeepingProgress()
+
+        assertTrue(setRepository.observeLoggedSets(EXTENSION_TRICEPS_OVERHEAD_ID).first().isNotEmpty())
+        assertNull(sessionRepository.observeSubstitution(PRESS_MILITAR_ID).first())
+    }
+
+    @Test
     fun `una serie registrada sobrevive a que se recree el viewmodel sin completar el ejercicio`() = runTest {
         val setRepository = FakeSetRepository()
         val firstViewModel = viewModel(ELEVACIONES_ID, setRepository = setRepository)

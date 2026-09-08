@@ -75,6 +75,7 @@ import kotlinx.coroutines.launch
 @Composable
 fun ActiveExerciseScreen(
     onExitDiscarding: () -> Unit,
+    onFinishRoutine: () -> Unit,
     onSwapExercise: () -> Unit,
     onOpenNotes: () -> Unit,
     onOpenDrawer: () -> Unit,
@@ -86,6 +87,7 @@ fun ActiveExerciseScreen(
     val pagerState = rememberPagerState(pageCount = { 3 })
     val pagerScope = rememberCoroutineScope()
     var showExitConfirm by remember { mutableStateOf(false) }
+    var showFinishConfirm by remember { mutableStateOf(false) }
     val context = LocalContext.current
 
     val notificationPermissionLauncher = rememberLauncherForActivityResult(
@@ -121,6 +123,7 @@ fun ActiveExerciseScreen(
                 nextExerciseId = uiState.nextExerciseId,
                 onPreviousExercise = onPreviousExercise,
                 onNextExercise = onNextExercise,
+                onFinishRoutineClick = { showFinishConfirm = true },
             )
         }
     ) { innerPadding ->
@@ -219,6 +222,19 @@ fun ActiveExerciseScreen(
             onCancel = { showExitConfirm = false }
         )
     }
+
+    if (showFinishConfirm) {
+        ConfirmDialog(
+            title = "¿Terminar rutina?",
+            message = "Se guardará todo lo registrado hasta ahora.",
+            onConfirm = {
+                showFinishConfirm = false
+                viewModel.finishRoutineKeepingProgress()
+                onFinishRoutine()
+            },
+            onCancel = { showFinishConfirm = false }
+        )
+    }
 }
 
 @Composable
@@ -227,29 +243,45 @@ private fun NextPreviousBar(
     nextExerciseId: String?,
     onPreviousExercise: (String) -> Unit,
     onNextExercise: (String) -> Unit,
+    onFinishRoutineClick: () -> Unit,
 ) {
     BottomAppBar {
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 16.dp),
-            horizontalArrangement = Arrangement.SpaceBetween
-        ) {
-            OutlinedButton(
-                onClick = { previousExerciseId?.let(onPreviousExercise) },
-                enabled = previousExerciseId != null,
-                modifier = Modifier.testTag("previousExerciseButton")
-            ) {
-                Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = null)
-                Text(" Anterior")
+        Column(modifier = Modifier.fillMaxWidth()) {
+            if (nextExerciseId == null) {
+                // Último ejercicio del día: permite terminar la rutina conservando lo registrado,
+                // sin necesidad de completar este ejercicio primero.
+                Button(
+                    onClick = onFinishRoutineClick,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 16.dp, vertical = 4.dp)
+                        .testTag("finishRoutineButton")
+                ) {
+                    Text("Terminar y guardar")
+                }
             }
-            OutlinedButton(
-                onClick = { nextExerciseId?.let(onNextExercise) },
-                enabled = nextExerciseId != null,
-                modifier = Modifier.testTag("nextExerciseButton")
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 16.dp),
+                horizontalArrangement = Arrangement.SpaceBetween
             ) {
-                Text("Siguiente ")
-                Icon(Icons.AutoMirrored.Filled.ArrowForward, contentDescription = null)
+                OutlinedButton(
+                    onClick = { previousExerciseId?.let(onPreviousExercise) },
+                    enabled = previousExerciseId != null,
+                    modifier = Modifier.testTag("previousExerciseButton")
+                ) {
+                    Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = null)
+                    Text(" Anterior")
+                }
+                OutlinedButton(
+                    onClick = { nextExerciseId?.let(onNextExercise) },
+                    enabled = nextExerciseId != null,
+                    modifier = Modifier.testTag("nextExerciseButton")
+                ) {
+                    Text("Siguiente ")
+                    Icon(Icons.AutoMirrored.Filled.ArrowForward, contentDescription = null)
+                }
             }
         }
     }

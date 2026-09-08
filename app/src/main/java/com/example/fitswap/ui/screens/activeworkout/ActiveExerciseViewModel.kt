@@ -532,6 +532,19 @@ class ActiveExerciseViewModel @Inject constructor(
         }
     }
 
+    /** "Terminar y guardar" desde el último ejercicio del día ([ActiveExerciseUiState.nextExerciseId]
+     * nulo): a diferencia de [endRoutine], **conserva** todo lo ya persistido de esta sesión —
+     * incluso el progreso a medias del ejercicio en curso — en vez de descartarlo. Solo vacía el
+     * registro en memoria de la sesión (ya no hace falta borrarlo al salir) y limpia las
+     * sustituciones, igual que `SessionMenuViewModel.endRoutine()`. */
+    fun finishRoutineKeepingProgress() {
+        completionCountdownJob?.cancel()
+        completionCountdownJob = null
+        sessionLoggedSetIds.clear()
+        sessionHistoryPointIds.clear()
+        viewModelScope.launch { workoutSessionRepository.clearAll() }
+    }
+
     private fun refreshUiState() {
         val exercise = routineExercise ?: return
         val displayExercise = substitutedExercise ?: exercise.exercise

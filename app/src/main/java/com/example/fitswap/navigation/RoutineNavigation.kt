@@ -112,6 +112,12 @@ fun NavGraphBuilder.activeExerciseScreen(navController: NavHostController, onOpe
                     launchSingleTop = true
                 }
             },
+            onFinishRoutine = {
+                navController.navigate(Destination.Routines.route) {
+                    popUpTo(Destination.Routines.route) { inclusive = true }
+                    launchSingleTop = true
+                }
+            },
             onSwapExercise = { navController.navigate(swapExerciseRoute(routineId, dayId, exerciseId)) },
             onOpenNotes = { navController.navigate(notesRoute(routineId, dayId, exerciseId)) },
             onOpenDrawer = onOpenDrawer,
