@@ -6,8 +6,11 @@ import com.example.fitswap.data.repository.fake.ExerciseCatalog
 import com.example.fitswap.data.repository.fake.FakeRoutineRepository
 import com.example.fitswap.data.repository.fake.FakeSetRepository
 import com.example.fitswap.data.repository.fake.FakeWorkoutSessionRepository
+import com.example.fitswap.data.time.CurrentDateProvider
+import com.example.fitswap.data.time.FixedCurrentDateProvider
 import com.example.fitswap.domain.model.LoggedSet
 import com.example.fitswap.domain.model.SetType
+import java.time.DayOfWeek
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
@@ -32,6 +35,7 @@ class SessionMenuViewModelTest {
         activeExerciseId: String,
         setRepository: FakeSetRepository = FakeSetRepository(),
         workoutSessionRepository: FakeWorkoutSessionRepository = FakeWorkoutSessionRepository(),
+        currentDateProvider: CurrentDateProvider = FixedCurrentDateProvider(DayOfWeek.TUESDAY),
     ) = SessionMenuViewModel(
         savedStateHandle = SavedStateHandle(
             mapOf("routineId" to ROUTINE_ID, "dayId" to PUSH_DAY_ID, "exerciseId" to activeExerciseId)
@@ -39,6 +43,7 @@ class SessionMenuViewModelTest {
         routineRepository = FakeRoutineRepository(),
         setRepository = setRepository,
         workoutSessionRepository = workoutSessionRepository,
+        currentDateProvider = currentDateProvider,
     )
 
     @Test
@@ -57,10 +62,11 @@ class SessionMenuViewModelTest {
     @Test
     fun `un ejercicio con todas sus series registradas se marca DONE`() = runTest {
         val setRepository = FakeSetRepository()
+        val today = FixedCurrentDateProvider(DayOfWeek.TUESDAY).today()
         // Elevaciones laterales: 1 warmup + 4 effective = 5 series para completarlo.
         repeat(5) { index ->
             setRepository.logSet(
-                LoggedSet(id = "log-$index", routineExerciseId = ELEVACIONES_ID, type = SetType.EFFECTIVE, reps = 10, weightKg = 1.0)
+                LoggedSet(id = "log-$index", routineExerciseId = ELEVACIONES_ID, type = SetType.EFFECTIVE, reps = 10, weightKg = 1.0, date = today)
             )
         }
 

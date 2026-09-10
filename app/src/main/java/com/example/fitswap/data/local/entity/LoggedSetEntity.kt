@@ -6,6 +6,7 @@ import androidx.room.Index
 import androidx.room.PrimaryKey
 import com.example.fitswap.domain.model.LoggedSet
 import com.example.fitswap.domain.model.SetType
+import java.time.LocalDate
 
 @Entity(
     tableName = "logged_sets",
@@ -25,6 +26,7 @@ data class LoggedSetEntity(
     val type: SetType,
     val reps: Int,
     val weightKg: Double,
+    val date: LocalDate,
 )
 
 fun LoggedSetEntity.toDomain(): LoggedSet = LoggedSet(
@@ -33,6 +35,7 @@ fun LoggedSetEntity.toDomain(): LoggedSet = LoggedSet(
     type = type,
     reps = reps,
     weightKg = weightKg,
+    date = date,
 )
 
 fun LoggedSet.toEntity(): LoggedSetEntity = LoggedSetEntity(
@@ -41,4 +44,5 @@ fun LoggedSet.toEntity(): LoggedSetEntity = LoggedSetEntity(
     type = type,
     reps = reps,
     weightKg = weightKg,
+    date = date,
 )

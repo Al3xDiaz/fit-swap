@@ -6,6 +6,7 @@ import androidx.lifecycle.viewModelScope
 import com.example.fitswap.data.repository.RoutineRepository
 import com.example.fitswap.data.repository.SetRepository
 import com.example.fitswap.data.repository.WorkoutSessionRepository
+import com.example.fitswap.data.time.CurrentDateProvider
 import com.example.fitswap.domain.logic.SetPlanner
 import dagger.hilt.android.lifecycle.HiltViewModel
 import javax.inject.Inject
@@ -36,6 +37,7 @@ class SessionMenuViewModel @Inject constructor(
     private val routineRepository: RoutineRepository,
     private val setRepository: SetRepository,
     private val workoutSessionRepository: WorkoutSessionRepository,
+    private val currentDateProvider: CurrentDateProvider,
 ) : ViewModel() {
 
     private val routineId: String = checkNotNull(savedStateHandle["routineId"])
@@ -52,7 +54,7 @@ class SessionMenuViewModel @Inject constructor(
 
             val items = day.exercises.map { routineExercise ->
                 val plan = SetPlanner.buildPlan(routineExercise)
-                val loggedCount = setRepository.observeLoggedSets(routineExercise.id).first().size
+                val loggedCount = setRepository.observeLoggedSets(routineExercise.id, currentDateProvider.today()).first().size
                 val substitution = workoutSessionRepository.observeSubstitution(routineExercise.id).first()
                 val status = when {
                     routineExercise.id == activeRoutineExerciseId -> SessionExerciseStatus.ACTIVE

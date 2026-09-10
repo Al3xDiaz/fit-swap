@@ -7,6 +7,7 @@ import com.example.fitswap.data.local.entity.ExerciseEntity
 import com.example.fitswap.data.local.entity.RoutineDayEntity
 import com.example.fitswap.data.local.entity.RoutineEntity
 import com.example.fitswap.data.local.entity.RoutineExerciseEntity
+import java.time.LocalDate
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.runBlocking
 import org.junit.After
@@ -102,15 +103,17 @@ class RoutineDaoTest {
     @Test
     fun logSetSeBorraEnCascadaAlBorrarSuEjercicioEnRutina() = runBlocking {
         seedOneRoutineDayExercise()
+        val today = LocalDate.of(2026, 9, 9)
         database.setDao().insert(
             com.example.fitswap.data.local.entity.LoggedSetEntity(
-                id = "s1", routineExerciseId = "re1", type = com.example.fitswap.domain.model.SetType.EFFECTIVE, reps = 10, weightKg = 50.0
+                id = "s1", routineExerciseId = "re1", type = com.example.fitswap.domain.model.SetType.EFFECTIVE, reps = 10, weightKg = 50.0,
+                date = today,
             )
         )
 
         database.routineDao().removeRoutineExercise("re1")
 
-        val loggedSets = database.setDao().observeLoggedSets("re1").first()
+        val loggedSets = database.setDao().observeLoggedSets("re1", today).first()
         assertTrue("borrar el ejercicio-en-rutina debería arrastrar en cascada sus series registradas", loggedSets.isEmpty())
     }
 }

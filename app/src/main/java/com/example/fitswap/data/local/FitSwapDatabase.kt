@@ -46,9 +46,11 @@ import com.example.fitswap.data.local.entity.SubstituteLinkEntity
         CardioSessionEntity::class,
     ],
     // v3: agrega Exercise.type (STRENGTH/CARDIO) y cardio_sessions.
-    // v4: agrega glúteo/antebrazo/hombro/muñeca a body_measurements. Sin migración porque todavía
-    // no hay usuarios reales — ver `fallbackToDestructiveMigration()` en DatabaseModule.
-    version = 4,
+    // v4: agrega glúteo/antebrazo/hombro/muñeca a body_measurements.
+    // v5: agrega fecha a logged_sets (antes se acumulaban sin límite por routineExerciseId, así
+    // que un ejercicio completado un día quedaba "completado" para siempre). Sin migración porque
+    // todavía no hay usuarios reales — ver `fallbackToDestructiveMigration()` en DatabaseModule.
+    version = 5,
     exportSchema = false,
 )
 @TypeConverters(

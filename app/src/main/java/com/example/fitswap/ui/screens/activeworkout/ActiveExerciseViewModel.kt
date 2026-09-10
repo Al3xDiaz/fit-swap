@@ -151,8 +151,10 @@ class ActiveExerciseViewModel @Inject constructor(
     /** Ids de las series/puntos de historial persistidos en esta sesión de pantalla (ver
      * [registerSet], que ya los guarda en Room de inmediato — no se espera a completar el
      * ejercicio, para no perderlos si el proceso muere en background, p. ej. al cancelar el timer
-     * de descanso desde su notificación). Si se sale sin completar, se borran explícitamente por
-     * id (ver [endRoutine]) para conservar el mensaje del diálogo de salida. */
+     * de descanso desde su notificación). Ya no se usan para saber qué borrar al salir — eso ahora
+     * se hace por fecha (ver `RoutineSessionFinisher`/`discardExerciseData`) —, solo para saber si
+     * hay algo pendiente de esta pantalla que auto-completar (ver [completeExercise] y
+     * [refreshUiState]'s `hasPendingProgress`). */
     private val sessionLoggedSetIds = mutableListOf<String>()
     private val sessionHistoryPointIds = mutableListOf<String>()
 
@@ -199,7 +201,7 @@ class ActiveExerciseViewModel @Inject constructor(
                 val restTimerSeconds = settingsRepository.observeSettings().first().restTimerSeconds
                 plan = SetPlanner.buildPlan(exercise, restTimerSeconds)
 
-                val existingLogged = setRepository.observeLoggedSets(exercise.id).first()
+                val existingLogged = setRepository.observeLoggedSets(exercise.id, currentDateProvider.today()).first()
                 planIndex = existingLogged.size.coerceAtMost(plan.size)
                 loggedSetSeq = existingLogged.size
             }
@@ -446,6 +448,7 @@ class ActiveExerciseViewModel @Inject constructor(
             type = current.type,
             reps = state.currentReps,
             weightKg = state.currentStageWeightKg,
+            date = currentDateProvider.today(),
         )
         val historyPoint = HistoryPoint(
             id = "${displayExercise.id}-$seq",

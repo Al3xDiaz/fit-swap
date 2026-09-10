@@ -21,6 +21,7 @@ import com.example.fitswap.data.repository.fake.FakeSubstituteRepository
 import com.example.fitswap.data.repository.fake.FakeWorkoutSessionRepository
 import com.example.fitswap.data.time.FixedCurrentDateProvider
 import com.example.fitswap.domain.model.ExerciseType
+import com.example.fitswap.domain.model.LoggedSet
 import com.example.fitswap.domain.model.SetType
 import com.example.fitswap.timer.CardioTimerStatus
 import com.example.fitswap.timer.FakeCardioTimer
@@ -38,6 +39,9 @@ import org.junit.Test
 
 private const val ROUTINE_ID = "default"
 private const val PUSH_DAY_ID = "default-martes"
+
+// Mismo currentDateProvider que usa el helper `viewModel(...)` de este archivo (línea ~96).
+private val TODAY = FixedCurrentDateProvider(DayOfWeek.TUESDAY).today()
 private const val LEGS_DAY_ID = "default-jueves"
 private const val SUNDAY_DAY_ID = "default-domingo"
 
@@ -157,6 +161,28 @@ class ActiveExerciseViewModelTest {
     }
 
     @Test
+    fun `un ejercicio completado un dia distinto no aparece completo hoy`() = runTest {
+        // Regresión: logged_sets llevaba id pero no fecha, así que se acumulaba sin límite por
+        // slot — completar el ejercicio una vez lo dejaba "completo" para siempre.
+        val setRepository = FakeSetRepository()
+        val yesterday = TODAY.minusDays(1)
+        repeat(5) { index -> // 1 warmup + 4 effective = plan completo, pero con fecha de ayer
+            setRepository.logSet(
+                LoggedSet(
+                    id = "$ELEVACIONES_ID-$index", routineExerciseId = ELEVACIONES_ID,
+                    type = SetType.EFFECTIVE, reps = 10, weightKg = 1.0, date = yesterday,
+                )
+            )
+        }
+
+        val viewModel = viewModel(ELEVACIONES_ID, setRepository = setRepository)
+        val state = viewModel.uiState.first { !it.isLoading }
+
+        assertFalse(state.isComplete)
+        assertEquals(SetType.WARMUP, state.currentSet?.type)
+    }
+
+    @Test
     fun `peso efectivo es editable en cualquier punto del flujo`() = runTest {
         val viewModel = viewModel(ELEVACIONES_ID)
         viewModel.uiState.first { !it.isLoading }
@@ -181,7 +207,7 @@ class ActiveExerciseViewModelTest {
         repeat(4) { viewModel.registerSet() } // 4 effective, ya con el peso nuevo -> plan completo
         viewModel.completeExercise() // ya no persiste nada, solo cierra la sesión
 
-        val loggedWarmup = setRepository.observeLoggedSets(ELEVACIONES_ID).first().single { it.type == SetType.WARMUP }
+        val loggedWarmup = setRepository.observeLoggedSets(ELEVACIONES_ID, TODAY).first().single { it.type == SetType.WARMUP }
         assertEquals(0.5, loggedWarmup.weightKg, 0.0)
     }
 
@@ -332,7 +358,7 @@ class ActiveExerciseViewModelTest {
         viewModel.endRoutine() // mismo flujo que "Salir del entrenamiento" con confirmación
 
         assertTrue(historyRepository.observeHistory(ExerciseCatalog.elevacionesLaterales.id).first().isEmpty())
-        assertTrue(setRepository.observeLoggedSets(ELEVACIONES_ID).first().isEmpty())
+        assertTrue(setRepository.observeLoggedSets(ELEVACIONES_ID, TODAY).first().isEmpty())
     }
 
     @Test
@@ -350,7 +376,7 @@ class ActiveExerciseViewModelTest {
         repeat(2) { viewModel.registerSet() } // progreso a medias del ultimo ejercicio de fuerza, nunca se completa
         viewModel.finishRoutineKeepingProgress()
 
-        assertTrue(setRepository.observeLoggedSets(EXTENSION_TRICEPS_OVERHEAD_ID).first().isNotEmpty())
+        assertTrue(setRepository.observeLoggedSets(EXTENSION_TRICEPS_OVERHEAD_ID, TODAY).first().isNotEmpty())
         assertNull(sessionRepository.observeSubstitution(PRESS_MILITAR_ID).first())
     }
 
