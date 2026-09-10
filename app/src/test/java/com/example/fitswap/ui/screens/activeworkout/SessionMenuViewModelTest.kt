@@ -5,7 +5,11 @@ import com.example.fitswap.MainDispatcherRule
 import com.example.fitswap.data.repository.fake.ExerciseCatalog
 import com.example.fitswap.data.repository.fake.FakeRoutineRepository
 import com.example.fitswap.data.repository.fake.FakeSetRepository
+import com.example.fitswap.data.repository.fake.FakeCardioSessionRepository
+import com.example.fitswap.data.repository.fake.FakeHistoryRepository
+import com.example.fitswap.data.repository.fake.FakeNotesRepository
 import com.example.fitswap.data.repository.fake.FakeWorkoutSessionRepository
+import com.example.fitswap.data.session.RoutineSessionFinisher
 import com.example.fitswap.data.time.CurrentDateProvider
 import com.example.fitswap.data.time.FixedCurrentDateProvider
 import com.example.fitswap.domain.model.LoggedSet
@@ -15,6 +19,7 @@ import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
+import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
 
@@ -44,6 +49,14 @@ class SessionMenuViewModelTest {
         setRepository = setRepository,
         workoutSessionRepository = workoutSessionRepository,
         currentDateProvider = currentDateProvider,
+        routineSessionFinisher = RoutineSessionFinisher(
+            setRepository = setRepository,
+            historyRepository = FakeHistoryRepository(),
+            cardioSessionRepository = FakeCardioSessionRepository(),
+            notesRepository = FakeNotesRepository(),
+            workoutSessionRepository = workoutSessionRepository,
+            currentDateProvider = currentDateProvider,
+        ),
     )
 
     @Test
@@ -92,15 +105,37 @@ class SessionMenuViewModelTest {
     }
 
     @Test
-    fun `terminar rutina limpia las sustituciones de la sesion`() = runTest {
+    fun `guardar rutina limpia las sustituciones de la sesion`() = runTest {
         val sessionRepository = FakeWorkoutSessionRepository()
         sessionRepository.substituteExercise(PRESS_MILITAR_ID, ExerciseCatalog.pressDeHombroEnMaquina)
         val viewModel = viewModel(activeExerciseId = ELEVACIONES_ID, workoutSessionRepository = sessionRepository)
         viewModel.uiState.first { !it.isLoading }
 
-        viewModel.endRoutine()
+        viewModel.saveRoutine()
 
         val substitution = sessionRepository.observeSubstitution(PRESS_MILITAR_ID).first()
         assertNull(substitution)
+    }
+
+    @Test
+    fun `descartar rutina limpia las sustituciones y borra las series de hoy`() = runTest {
+        val setRepository = FakeSetRepository()
+        val today = FixedCurrentDateProvider(DayOfWeek.TUESDAY).today()
+        setRepository.logSet(
+            LoggedSet(id = "log-0", routineExerciseId = PRESS_MILITAR_ID, type = SetType.EFFECTIVE, reps = 10, weightKg = 1.0, date = today)
+        )
+        val sessionRepository = FakeWorkoutSessionRepository()
+        sessionRepository.substituteExercise(PRESS_MILITAR_ID, ExerciseCatalog.pressDeHombroEnMaquina)
+        val viewModel = viewModel(
+            activeExerciseId = ELEVACIONES_ID,
+            setRepository = setRepository,
+            workoutSessionRepository = sessionRepository,
+        )
+        viewModel.uiState.first { !it.isLoading }
+
+        viewModel.discardRoutine()
+
+        assertNull(sessionRepository.observeSubstitution(PRESS_MILITAR_ID).first())
+        assertTrue(setRepository.observeLoggedSets(PRESS_MILITAR_ID, today).first().isEmpty())
     }
 }

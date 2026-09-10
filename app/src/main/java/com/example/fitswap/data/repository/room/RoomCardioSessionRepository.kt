@@ -5,6 +5,7 @@ import com.example.fitswap.data.local.entity.toDomain
 import com.example.fitswap.data.local.entity.toEntity
 import com.example.fitswap.data.repository.CardioSessionRepository
 import com.example.fitswap.domain.model.CardioSession
+import java.time.LocalDate
 import javax.inject.Inject
 import javax.inject.Singleton
 import kotlinx.coroutines.flow.Flow
@@ -28,5 +29,9 @@ class RoomCardioSessionRepository @Inject constructor(
 
     override suspend fun deleteSession(id: String) {
         cardioSessionDao.deleteSession(id)
+    }
+
+    override suspend fun deleteAllSessionsForDate(date: LocalDate) {
+        cardioSessionDao.deleteAllForDate(date)
     }
 }

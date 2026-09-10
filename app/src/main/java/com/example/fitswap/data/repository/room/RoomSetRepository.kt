@@ -21,10 +21,6 @@ class RoomSetRepository @Inject constructor(private val setDao: SetDao) : SetRep
         setDao.insert(loggedSet.toEntity())
     }
 
-    override suspend fun deleteSets(ids: List<String>) {
-        if (ids.isNotEmpty()) setDao.deleteByIds(ids)
-    }
-
     override suspend fun deleteLoggedSetsForDate(routineExerciseId: String, date: LocalDate) {
         setDao.deleteLoggedSetsForDate(routineExerciseId, date)
     }

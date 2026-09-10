@@ -18,9 +18,6 @@ interface SetDao {
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insert(loggedSet: LoggedSetEntity)
 
-    @Query("DELETE FROM logged_sets WHERE id IN (:ids)")
-    suspend fun deleteByIds(ids: List<String>)
-
     /** Borra las series de un slot puntual en una fecha — usado para "descartar" un ejercicio. */
     @Query("DELETE FROM logged_sets WHERE routineExerciseId = :routineExerciseId AND date = :date")
     suspend fun deleteLoggedSetsForDate(routineExerciseId: String, date: LocalDate)

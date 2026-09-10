@@ -21,7 +21,7 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavBackStackEntry
-import com.example.fitswap.ui.common.ConfirmDialog
+import com.example.fitswap.ui.common.FinishRoutineDialog
 
 /**
  * Contenido del drawer principal (☰, misma posición/click/gesto que en el resto de la app)
@@ -85,12 +85,15 @@ fun SessionDrawerContent(
     }
 
     if (showFinishConfirm) {
-        ConfirmDialog(
-            title = "¿Está seguro?",
-            message = "Se terminará el entrenamiento en curso y volverás a Rutinas.",
-            onConfirm = {
+        FinishRoutineDialog(
+            onSave = {
                 showFinishConfirm = false
-                viewModel.endRoutine()
+                viewModel.saveRoutine()
+                onFinishRoutine()
+            },
+            onDiscard = {
+                showFinishConfirm = false
+                viewModel.discardRoutine()
                 onFinishRoutine()
             },
             onCancel = { showFinishConfirm = false }

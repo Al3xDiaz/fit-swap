@@ -45,4 +45,8 @@ class RoomHistoryRepository @Inject constructor(private val historyDao: HistoryD
     override suspend fun deleteHistoryForDate(exerciseId: String, date: LocalDate) {
         historyDao.deleteHistoryForDate(exerciseId, date)
     }
+
+    override suspend fun deleteAllHistoryForDate(date: LocalDate) {
+        historyDao.deleteAllForDate(date)
+    }
 }

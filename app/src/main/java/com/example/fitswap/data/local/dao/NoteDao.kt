@@ -6,6 +6,7 @@ import androidx.room.OnConflictStrategy
 import androidx.room.Query
 import androidx.room.Transaction
 import com.example.fitswap.data.local.entity.NoteEntity
+import java.time.LocalDate
 import kotlinx.coroutines.flow.Flow
 
 @Dao
@@ -30,6 +31,11 @@ interface NoteDao {
 
     @Query("DELETE FROM notes WHERE id = :id")
     suspend fun deleteById(id: String)
+
+    /** Borra las notas de TODOS los ejercicios en esa fecha — usado al descartar toda la sesión
+     * de hoy al terminar la rutina. */
+    @Query("DELETE FROM notes WHERE date = :date")
+    suspend fun deleteAllForDate(date: LocalDate)
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertAll(notes: List<NoteEntity>)

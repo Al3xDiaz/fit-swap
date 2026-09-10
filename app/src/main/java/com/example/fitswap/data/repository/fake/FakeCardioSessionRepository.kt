@@ -2,6 +2,7 @@ package com.example.fitswap.data.repository.fake
 
 import com.example.fitswap.data.repository.CardioSessionRepository
 import com.example.fitswap.domain.model.CardioSession
+import java.time.LocalDate
 import javax.inject.Inject
 import javax.inject.Singleton
 import kotlinx.coroutines.flow.Flow
@@ -28,6 +29,12 @@ class FakeCardioSessionRepository @Inject constructor() : CardioSessionRepositor
     override suspend fun deleteSession(id: String) {
         sessionsByExercise.update { current ->
             current.mapValues { (_, sessions) -> sessions.filterNot { it.id == id } }
+        }
+    }
+
+    override suspend fun deleteAllSessionsForDate(date: LocalDate) {
+        sessionsByExercise.update { current ->
+            current.mapValues { (_, sessions) -> sessions.filterNot { it.date == date } }
         }
     }
 

@@ -56,6 +56,12 @@ class FakeHistoryRepository @Inject constructor() : HistoryRepository {
         }
     }
 
+    override suspend fun deleteAllHistoryForDate(date: LocalDate) {
+        historyByExercise.update { current ->
+            current.mapValues { (_, points) -> points.filterNot { it.date == date } }
+        }
+    }
+
     /** Upsert por id, igual que hace Room con `OnConflictStrategy.REPLACE`. */
     private fun upsert(point: HistoryPoint) {
         historyByExercise.update { current ->

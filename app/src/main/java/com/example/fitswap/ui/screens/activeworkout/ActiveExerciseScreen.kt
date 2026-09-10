@@ -69,13 +69,13 @@ import com.example.fitswap.domain.model.SetType
 import com.example.fitswap.timer.CardioTimerStatus
 import com.example.fitswap.ui.common.AppTopBar
 import com.example.fitswap.ui.common.ConfirmDialog
+import com.example.fitswap.ui.common.FinishRoutineDialog
 import com.example.fitswap.ui.common.MenuNavigationIcon
 import kotlinx.coroutines.launch
 
 @Composable
 fun ActiveExerciseScreen(
-    onExitDiscarding: () -> Unit,
-    onFinishRoutine: () -> Unit,
+    onRoutineFinished: () -> Unit,
     onSwapExercise: () -> Unit,
     onOpenNotes: () -> Unit,
     onOpenDrawer: () -> Unit,
@@ -86,8 +86,7 @@ fun ActiveExerciseScreen(
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val pagerState = rememberPagerState(pageCount = { 3 })
     val pagerScope = rememberCoroutineScope()
-    var showExitConfirm by remember { mutableStateOf(false) }
-    var showFinishConfirm by remember { mutableStateOf(false) }
+    var showFinishRoutineDialog by remember { mutableStateOf(false) }
     val context = LocalContext.current
 
     val notificationPermissionLauncher = rememberLauncherForActivityResult(
@@ -103,7 +102,7 @@ fun ActiveExerciseScreen(
         }
     }
 
-    BackHandler { showExitConfirm = true }
+    BackHandler { showFinishRoutineDialog = true }
 
     Scaffold(
         topBar = {
@@ -123,7 +122,6 @@ fun ActiveExerciseScreen(
                 nextExerciseId = uiState.nextExerciseId,
                 onPreviousExercise = onPreviousExercise,
                 onNextExercise = onNextExercise,
-                onFinishRoutineClick = { showFinishConfirm = true },
             )
         }
     ) { innerPadding ->
@@ -211,29 +209,19 @@ fun ActiveExerciseScreen(
         onNextExercise(target)
     }
 
-    if (showExitConfirm) {
-        ConfirmDialog(
-            title = "¿Salir del entrenamiento?",
-            message = "Se descartará el progreso de este ejercicio y se terminará la rutina en curso.",
-            onConfirm = {
-                showExitConfirm = false
-                viewModel.endRoutine()
-                onExitDiscarding()
+    if (showFinishRoutineDialog) {
+        FinishRoutineDialog(
+            onSave = {
+                showFinishRoutineDialog = false
+                viewModel.saveAndFinishRoutine()
+                onRoutineFinished()
             },
-            onCancel = { showExitConfirm = false }
-        )
-    }
-
-    if (showFinishConfirm) {
-        ConfirmDialog(
-            title = "¿Terminar rutina?",
-            message = "Se guardará todo lo registrado hasta ahora.",
-            onConfirm = {
-                showFinishConfirm = false
-                viewModel.finishRoutineKeepingProgress()
-                onFinishRoutine()
+            onDiscard = {
+                showFinishRoutineDialog = false
+                viewModel.discardAndFinishRoutine()
+                onRoutineFinished()
             },
-            onCancel = { showFinishConfirm = false }
+            onCancel = { showFinishRoutineDialog = false }
         )
     }
 }
@@ -244,45 +232,29 @@ private fun NextPreviousBar(
     nextExerciseId: String?,
     onPreviousExercise: (String) -> Unit,
     onNextExercise: (String) -> Unit,
-    onFinishRoutineClick: () -> Unit,
 ) {
     BottomAppBar {
-        Column(modifier = Modifier.fillMaxWidth()) {
-            if (nextExerciseId == null) {
-                // Último ejercicio del día: permite terminar la rutina conservando lo registrado,
-                // sin necesidad de completar este ejercicio primero.
-                Button(
-                    onClick = onFinishRoutineClick,
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(horizontal = 16.dp, vertical = 4.dp)
-                        .testTag("finishRoutineButton")
-                ) {
-                    Text("Terminar y guardar")
-                }
-            }
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 16.dp),
-                horizontalArrangement = Arrangement.SpaceBetween
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 16.dp),
+            horizontalArrangement = Arrangement.SpaceBetween
+        ) {
+            OutlinedButton(
+                onClick = { previousExerciseId?.let(onPreviousExercise) },
+                enabled = previousExerciseId != null,
+                modifier = Modifier.testTag("previousExerciseButton")
             ) {
-                OutlinedButton(
-                    onClick = { previousExerciseId?.let(onPreviousExercise) },
-                    enabled = previousExerciseId != null,
-                    modifier = Modifier.testTag("previousExerciseButton")
-                ) {
-                    Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = null)
-                    Text(" Anterior")
-                }
-                OutlinedButton(
-                    onClick = { nextExerciseId?.let(onNextExercise) },
-                    enabled = nextExerciseId != null,
-                    modifier = Modifier.testTag("nextExerciseButton")
-                ) {
-                    Text("Siguiente ")
-                    Icon(Icons.AutoMirrored.Filled.ArrowForward, contentDescription = null)
-                }
+                Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = null)
+                Text(" Anterior")
+            }
+            OutlinedButton(
+                onClick = { nextExerciseId?.let(onNextExercise) },
+                enabled = nextExerciseId != null,
+                modifier = Modifier.testTag("nextExerciseButton")
+            ) {
+                Text("Siguiente ")
+                Icon(Icons.AutoMirrored.Filled.ArrowForward, contentDescription = null)
             }
         }
     }

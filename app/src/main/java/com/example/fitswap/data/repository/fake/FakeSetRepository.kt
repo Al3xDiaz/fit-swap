@@ -25,12 +25,6 @@ class FakeSetRepository @Inject constructor() : SetRepository {
         }
     }
 
-    override suspend fun deleteSets(ids: List<String>) {
-        loggedSetsByRoutineExercise.update { current ->
-            current.mapValues { (_, sets) -> sets.filterNot { it.id in ids } }
-        }
-    }
-
     override suspend fun deleteLoggedSetsForDate(routineExerciseId: String, date: LocalDate) {
         loggedSetsByRoutineExercise.update { current ->
             val existing = current[routineExerciseId].orEmpty().filterNot { it.date == date }

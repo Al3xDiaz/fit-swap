@@ -12,6 +12,7 @@ import com.example.fitswap.data.repository.SetRepository
 import com.example.fitswap.data.repository.SettingsRepository
 import com.example.fitswap.data.repository.SubstituteRepository
 import com.example.fitswap.data.repository.WorkoutSessionRepository
+import com.example.fitswap.data.session.RoutineSessionFinisher
 import com.example.fitswap.data.time.CurrentDateProvider
 import com.example.fitswap.domain.logic.ExerciseHistoryAnalytics
 import com.example.fitswap.domain.logic.HistorySession
@@ -132,6 +133,7 @@ class ActiveExerciseViewModel @Inject constructor(
     private val restTimerController: RestTimer,
     private val cardioSessionRepository: CardioSessionRepository,
     private val cardioTimerController: CardioTimer,
+    private val routineSessionFinisher: RoutineSessionFinisher,
 ) : ViewModel() {
 
     private val routineId: String = checkNotNull(savedStateHandle["routineId"])
@@ -524,32 +526,27 @@ class ActiveExerciseViewModel @Inject constructor(
         restTimerController.start(totalSeconds)
     }
 
-    /** Termina la rutina al confirmar la salida (back): borra explícitamente las series/puntos de
-     * historial persistidos en esta sesión para el ejercicio actual todavía no completado (ver
-     * [registerSet]/[completeExercise]) — cumple el mensaje del diálogo de salida ("se descartará
-     * el progreso de este ejercicio") — y limpia las sustituciones de la sesión, igual que
-     * `SessionMenuViewModel.endRoutine()`. */
-    fun endRoutine() {
-        viewModelScope.launch {
-            if (sessionLoggedSetIds.isNotEmpty()) setRepository.deleteSets(sessionLoggedSetIds)
-            if (sessionHistoryPointIds.isNotEmpty()) historyRepository.deleteHistoryPoints(sessionHistoryPointIds)
-            sessionLoggedSetIds.clear()
-            sessionHistoryPointIds.clear()
-            workoutSessionRepository.clearAll()
-        }
-    }
-
-    /** "Terminar y guardar" desde el último ejercicio del día ([ActiveExerciseUiState.nextExerciseId]
-     * nulo): a diferencia de [endRoutine], **conserva** todo lo ya persistido de esta sesión —
-     * incluso el progreso a medias del ejercicio en curso — en vez de descartarlo. Solo vacía el
-     * registro en memoria de la sesión (ya no hace falta borrarlo al salir) y limpia las
-     * sustituciones, igual que `SessionMenuViewModel.endRoutine()`. */
-    fun finishRoutineKeepingProgress() {
+    /** Termina la rutina conservando todo lo registrado hoy — ver
+     * [RoutineSessionFinisher.saveAndFinish]. Se llama tanto desde el modal de terminar rutina
+     * (back del sistema) eligiendo "Guardar" como, potencialmente, con progreso a medias del
+     * ejercicio en curso: a diferencia de [discardAndFinishRoutine], no borra nada. */
+    fun saveAndFinishRoutine() {
         completionCountdownJob?.cancel()
         completionCountdownJob = null
         sessionLoggedSetIds.clear()
         sessionHistoryPointIds.clear()
-        viewModelScope.launch { workoutSessionRepository.clearAll() }
+        viewModelScope.launch { routineSessionFinisher.saveAndFinish() }
+    }
+
+    /** Termina la rutina descartando TODO lo registrado hoy en la sesión (cualquier ejercicio del
+     * día, no solo el actual) — ver [RoutineSessionFinisher.discardAndFinish]. Se llama al elegir
+     * "Descartar" en el modal de terminar rutina (back del sistema). */
+    fun discardAndFinishRoutine() {
+        completionCountdownJob?.cancel()
+        completionCountdownJob = null
+        sessionLoggedSetIds.clear()
+        sessionHistoryPointIds.clear()
+        viewModelScope.launch { routineSessionFinisher.discardAndFinish() }
     }
 
     /** Descarta todo lo registrado **hoy** para este ejercicio (completo o a medias) y lo deja

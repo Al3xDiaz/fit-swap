@@ -32,4 +32,8 @@ interface HistoryRepository {
     /** Borra todos los puntos (efectivos y de aproximación) de un ejercicio en una fecha — usado
      * al eliminar un registro completo del historial. */
     suspend fun deleteHistoryForDate(exerciseId: String, date: LocalDate)
+
+    /** Borra los puntos de TODOS los ejercicios en una fecha — usado al descartar toda la sesión
+     * de hoy al terminar la rutina (ver `RoutineSessionFinisher`). */
+    suspend fun deleteAllHistoryForDate(date: LocalDate)
 }

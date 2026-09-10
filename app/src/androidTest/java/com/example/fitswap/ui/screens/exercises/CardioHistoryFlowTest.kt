@@ -51,7 +51,8 @@ class CardioHistoryFlowTest {
         composeTestRule.waitUntilTagExists("registerSetButton") // avanzó al siguiente ejercicio (fuerza)
         composeTestRule.onNodeWithContentDescription("Abrir menú").performClick()
         composeTestRule.onNodeWithText("Terminar rutina").performClick()
-        composeTestRule.onNodeWithText("Confirmar").performClick()
+        // Guardar (no descartar) — la sesión de cardio recién completada debe seguir en el historial.
+        composeTestRule.onNodeWithTag("saveRoutineButton").performClick()
         composeTestRule.onNodeWithContentDescription("Abrir menú").performClick()
         composeTestRule.onNodeWithTag("drawerItem_exercises").performClick()
         composeTestRule.onNodeWithTag("exerciseSearchField").performTextInput("Elíptica")

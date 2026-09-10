@@ -44,4 +44,10 @@ class FakeNotesRepository @Inject constructor() : NotesRepository {
             current + (exerciseId to existing)
         }
     }
+
+    override suspend fun deleteAllNotesForDate(date: LocalDate) {
+        notesByExercise.update { current ->
+            current.mapValues { (_, notes) -> notes.filterNot { it.date == date } }
+        }
+    }
 }

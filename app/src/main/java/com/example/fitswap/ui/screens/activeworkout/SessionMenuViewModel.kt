@@ -6,6 +6,7 @@ import androidx.lifecycle.viewModelScope
 import com.example.fitswap.data.repository.RoutineRepository
 import com.example.fitswap.data.repository.SetRepository
 import com.example.fitswap.data.repository.WorkoutSessionRepository
+import com.example.fitswap.data.session.RoutineSessionFinisher
 import com.example.fitswap.data.time.CurrentDateProvider
 import com.example.fitswap.domain.logic.SetPlanner
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -38,6 +39,7 @@ class SessionMenuViewModel @Inject constructor(
     private val setRepository: SetRepository,
     private val workoutSessionRepository: WorkoutSessionRepository,
     private val currentDateProvider: CurrentDateProvider,
+    private val routineSessionFinisher: RoutineSessionFinisher,
 ) : ViewModel() {
 
     private val routineId: String = checkNotNull(savedStateHandle["routineId"])
@@ -72,7 +74,13 @@ class SessionMenuViewModel @Inject constructor(
         }
     }
 
-    fun endRoutine() {
-        viewModelScope.launch { workoutSessionRepository.clearAll() }
+    /** Conserva todo lo registrado hoy — ver [RoutineSessionFinisher.saveAndFinish]. */
+    fun saveRoutine() {
+        viewModelScope.launch { routineSessionFinisher.saveAndFinish() }
+    }
+
+    /** Borra todo lo registrado hoy en la rutina — ver [RoutineSessionFinisher.discardAndFinish]. */
+    fun discardRoutine() {
+        viewModelScope.launch { routineSessionFinisher.discardAndFinish() }
     }
 }

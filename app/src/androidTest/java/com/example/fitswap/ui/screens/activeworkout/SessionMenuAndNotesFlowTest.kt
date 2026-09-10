@@ -65,11 +65,11 @@ class SessionMenuAndNotesFlowTest {
         composeTestRule.onNodeWithContentDescription("Cerrar").performClick()
         composeTestRule.onNodeWithTag("appTopBarTitle").assertTextEquals("Press militar en máquina")
 
-        // Terminar rutina (con confirmación) vuelve a Rutinas.
+        // Terminar rutina guardando lo registrado vuelve a Rutinas.
         composeTestRule.onNodeWithContentDescription("Abrir menú").performClick()
         composeTestRule.waitUntilTagExists("finishRoutineItem")
         composeTestRule.onNodeWithTag("finishRoutineItem").performClick()
-        composeTestRule.onNodeWithText("Confirmar").performClick()
+        composeTestRule.onNodeWithTag("saveRoutineButton").performClick()
         composeTestRule.onNodeWithTag("appTopBarTitle").assertTextEquals("Rutinas")
     }
 

@@ -23,6 +23,11 @@ interface HistoryDao {
     @Query("DELETE FROM history_points WHERE exerciseId = :exerciseId AND date = :date")
     suspend fun deleteHistoryForDate(exerciseId: String, date: LocalDate)
 
+    /** Borra los puntos de TODOS los ejercicios en esa fecha — usado al descartar toda la sesión
+     * de hoy al terminar la rutina. */
+    @Query("DELETE FROM history_points WHERE date = :date")
+    suspend fun deleteAllForDate(date: LocalDate)
+
     @Query("SELECT * FROM history_points")
     fun observeAllHistory(): Flow<List<HistoryPointEntity>>
 

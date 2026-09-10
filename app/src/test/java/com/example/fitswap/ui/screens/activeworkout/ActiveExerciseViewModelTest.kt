@@ -19,6 +19,7 @@ import com.example.fitswap.data.repository.fake.FakeSetRepository
 import com.example.fitswap.data.repository.fake.FakeSettingsRepository
 import com.example.fitswap.data.repository.fake.FakeSubstituteRepository
 import com.example.fitswap.data.repository.fake.FakeWorkoutSessionRepository
+import com.example.fitswap.data.session.RoutineSessionFinisher
 import com.example.fitswap.data.time.FixedCurrentDateProvider
 import com.example.fitswap.domain.model.ExerciseType
 import com.example.fitswap.domain.model.LoggedSet
@@ -88,6 +89,14 @@ class ActiveExerciseViewModelTest {
         restTimer: FakeRestTimer = FakeRestTimer(),
         cardioSessionRepository: FakeCardioSessionRepository = FakeCardioSessionRepository(),
         cardioTimer: FakeCardioTimer = FakeCardioTimer(),
+        routineSessionFinisher: RoutineSessionFinisher = RoutineSessionFinisher(
+            setRepository = setRepository,
+            historyRepository = historyRepository,
+            cardioSessionRepository = cardioSessionRepository,
+            notesRepository = notesRepository,
+            workoutSessionRepository = workoutSessionRepository,
+            currentDateProvider = FixedCurrentDateProvider(DayOfWeek.TUESDAY),
+        ),
     ) = ActiveExerciseViewModel(
         savedStateHandle = SavedStateHandle(
             mapOf("routineId" to ROUTINE_ID, "dayId" to dayId, "exerciseId" to exerciseId)
@@ -104,6 +113,7 @@ class ActiveExerciseViewModelTest {
         restTimerController = restTimer,
         cardioSessionRepository = cardioSessionRepository,
         cardioTimerController = cardioTimer,
+        routineSessionFinisher = routineSessionFinisher,
     )
 
     @Test
@@ -348,21 +358,21 @@ class ActiveExerciseViewModelTest {
     }
 
     @Test
-    fun `salir sin completar borra explicitamente el progreso ya persistido de la sesion`() = runTest {
+    fun `descartar la rutina borra el progreso ya persistido de la sesion de hoy`() = runTest {
         val historyRepository = FakeHistoryRepository()
         val setRepository = FakeSetRepository()
         val viewModel = viewModel(ELEVACIONES_ID, historyRepository = historyRepository, setRepository = setRepository)
         viewModel.uiState.first { !it.isLoading }
 
         repeat(3) { viewModel.registerSet() } // progreso parcial ya persistido, nunca se completa
-        viewModel.endRoutine() // mismo flujo que "Salir del entrenamiento" con confirmación
+        viewModel.discardAndFinishRoutine() // mismo flujo que elegir "Descartar" en el modal de terminar rutina
 
         assertTrue(historyRepository.observeHistory(ExerciseCatalog.elevacionesLaterales.id).first().isEmpty())
         assertTrue(setRepository.observeLoggedSets(ELEVACIONES_ID, TODAY).first().isEmpty())
     }
 
     @Test
-    fun `terminar la rutina conservando el progreso no borra las series ya registradas, a diferencia de endRoutine`() = runTest {
+    fun `guardar la rutina conserva las series ya registradas, a diferencia de descartar`() = runTest {
         val setRepository = FakeSetRepository()
         val sessionRepository = FakeWorkoutSessionRepository()
         sessionRepository.substituteExercise(PRESS_MILITAR_ID, ExerciseCatalog.pressDeHombroEnMaquina)
@@ -374,10 +384,27 @@ class ActiveExerciseViewModelTest {
         viewModel.uiState.first { !it.isLoading }
 
         repeat(2) { viewModel.registerSet() } // progreso a medias del ultimo ejercicio de fuerza, nunca se completa
-        viewModel.finishRoutineKeepingProgress()
+        viewModel.saveAndFinishRoutine()
 
         assertTrue(setRepository.observeLoggedSets(EXTENSION_TRICEPS_OVERHEAD_ID, TODAY).first().isNotEmpty())
         assertNull(sessionRepository.observeSubstitution(PRESS_MILITAR_ID).first())
+    }
+
+    @Test
+    fun `descartar la rutina borra series de OTRO ejercicio del dia, no solo el actual`() = runTest {
+        // A diferencia de discardExerciseData (Parte 2), descartar toda la rutina borra lo
+        // registrado hoy en cualquier ejercicio de la sesion, no solo el que se esta viendo.
+        val setRepository = FakeSetRepository()
+        val elevacionesViewModel = viewModel(ELEVACIONES_ID, setRepository = setRepository)
+        elevacionesViewModel.uiState.first { !it.isLoading }
+        repeat(2) { elevacionesViewModel.registerSet() }
+
+        val pressMilitarViewModel = viewModel(PRESS_MILITAR_ID, setRepository = setRepository)
+        pressMilitarViewModel.uiState.first { !it.isLoading }
+
+        pressMilitarViewModel.discardAndFinishRoutine()
+
+        assertTrue(setRepository.observeLoggedSets(ELEVACIONES_ID, TODAY).first().isEmpty())
     }
 
     @Test

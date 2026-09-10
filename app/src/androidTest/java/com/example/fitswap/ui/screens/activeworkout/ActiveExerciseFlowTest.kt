@@ -81,9 +81,10 @@ class ActiveExerciseFlowTest {
         composeTestRule.waitUntilTagExists("cardioStartButton")
 
         // El ícono de la topBar ahora abre el menú de sesión (reemplaza al drawer principal
-        // mientras hay rutina activa, ver AppNavHost) — salir se hace con el back del sistema.
+        // mientras hay rutina activa, ver AppNavHost) — salir se hace con el back del sistema, que
+        // ahora ofrece el modal Guardar/Descartar/Cancelar en vez de solo confirmar.
         Espresso.pressBack()
-        composeTestRule.onNodeWithText("Confirmar").performClick()
+        composeTestRule.onNodeWithTag("discardRoutineButton").performClick()
 
         composeTestRule.onNodeWithTag("appTopBarTitle").assertTextEquals("Rutinas")
     }
@@ -101,6 +102,26 @@ class ActiveExerciseFlowTest {
         composeTestRule.onNodeWithTag("discardExerciseDataButton").performClick()
         composeTestRule.onNodeWithText("Confirmar").performClick()
 
+        composeTestRule.onNodeWithTag("currentStageLabel").assertTextEquals("Calentamiento")
+    }
+
+    @Test
+    fun descartarLaRutinaPorElBackBorraElProgresoYNoQuedaGuardadoAlReabrir() {
+        composeTestRule.onNodeWithTag("routineListItem_default").performClick()
+        composeTestRule.onNodeWithTag("startWorkoutButton_default-martes").performClick()
+        composeTestRule.onNodeWithTag("nextExerciseButton").performClick() // saltar el calentamiento
+        composeTestRule.onNodeWithTag("appTopBarTitle").assertTextEquals("Elevaciones laterales")
+
+        composeTestRule.onNodeWithTag("registerSetButton").performClick() // progreso parcial, nunca se completa
+        Espresso.pressBack()
+        composeTestRule.onNodeWithTag("discardRoutineButton").performClick()
+        composeTestRule.onNodeWithTag("appTopBarTitle").assertTextEquals("Rutinas")
+
+        // Reabrir la misma rutina: el ejercicio no debe conservar la serie descartada.
+        composeTestRule.onNodeWithTag("routineListItem_default").performClick()
+        composeTestRule.onNodeWithTag("startWorkoutButton_default-martes").performClick()
+        composeTestRule.onNodeWithTag("nextExerciseButton").performClick()
+        composeTestRule.onNodeWithTag("appTopBarTitle").assertTextEquals("Elevaciones laterales")
         composeTestRule.onNodeWithTag("currentStageLabel").assertTextEquals("Calentamiento")
     }
 }

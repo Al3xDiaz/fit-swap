@@ -21,6 +21,10 @@ interface NotesRepository {
      * completo del historial de ese día. */
     suspend fun deleteNote(exerciseId: String, date: LocalDate)
 
+    /** Borra las notas de TODOS los ejercicios en una fecha — usado al descartar toda la sesión
+     * de hoy al terminar la rutina (ver `RoutineSessionFinisher`). */
+    suspend fun deleteAllNotesForDate(date: LocalDate)
+
     /** Notas de todos los ejercicios combinadas — usado por Herramientas (M9) para exportar. */
     fun observeAllNotes(): Flow<List<Note>>
 

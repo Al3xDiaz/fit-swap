@@ -1,6 +1,7 @@
 package com.example.fitswap.data.repository
 
 import com.example.fitswap.domain.model.CardioSession
+import java.time.LocalDate
 import kotlinx.coroutines.flow.Flow
 
 interface CardioSessionRepository {
@@ -11,4 +12,8 @@ interface CardioSessionRepository {
     suspend fun updateSession(session: CardioSession)
 
     suspend fun deleteSession(id: String)
+
+    /** Borra las sesiones de TODOS los ejercicios en una fecha — usado al descartar toda la
+     * sesión de hoy al terminar la rutina (ver `RoutineSessionFinisher`). */
+    suspend fun deleteAllSessionsForDate(date: LocalDate)
 }

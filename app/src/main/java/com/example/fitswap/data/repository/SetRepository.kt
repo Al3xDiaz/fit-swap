@@ -10,10 +10,6 @@ interface SetRepository {
     fun observeLoggedSets(routineExerciseId: String, date: LocalDate): Flow<List<LoggedSet>>
     suspend fun logSet(loggedSet: LoggedSet)
 
-    /** Borra series ya persistidas por id — usado para descartar el progreso de la sesión en
-     * curso cuando el usuario sale del entrenamiento sin completar el ejercicio. */
-    suspend fun deleteSets(ids: List<String>)
-
     /** Borra las series de un ejercicio puntual en una fecha — usado para "descartar" ese
      * ejercicio (ver `ActiveExerciseViewModel.discardExerciseData`). */
     suspend fun deleteLoggedSetsForDate(routineExerciseId: String, date: LocalDate)

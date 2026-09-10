@@ -106,13 +106,7 @@ fun NavGraphBuilder.activeExerciseScreen(navController: NavHostController, onOpe
         val dayId = backStackEntry.arguments?.getString(DAY_ID_ARG).orEmpty()
         val exerciseId = backStackEntry.arguments?.getString(EXERCISE_ID_ARG).orEmpty()
         ActiveExerciseScreen(
-            onExitDiscarding = {
-                navController.navigate(Destination.Routines.route) {
-                    popUpTo(Destination.Routines.route) { inclusive = true }
-                    launchSingleTop = true
-                }
-            },
-            onFinishRoutine = {
+            onRoutineFinished = {
                 navController.navigate(Destination.Routines.route) {
                     popUpTo(Destination.Routines.route) { inclusive = true }
                     launchSingleTop = true
