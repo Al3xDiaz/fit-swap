@@ -188,6 +188,7 @@ fun ActiveExerciseScreen(
                                 onRepsFocusChange = viewModel::onRepsFocusChanged,
                                 onRegisterSet = viewModel::registerSet,
                                 onCompleteExercise = viewModel::completeExercise,
+                                onDiscardExerciseData = viewModel::discardExerciseData,
                             )
                         }
 
@@ -301,8 +302,10 @@ private fun TrainingTab(
     onRepsFocusChange: (Boolean) -> Unit,
     onRegisterSet: () -> Unit,
     onCompleteExercise: () -> Unit,
+    onDiscardExerciseData: () -> Unit,
 ) {
     val exercise = uiState.exercise
+    var showDiscardConfirm by remember { mutableStateOf(false) }
 
     Column(
         modifier = Modifier
@@ -344,6 +347,15 @@ private fun TrainingTab(
                 style = MaterialTheme.typography.bodyMedium,
                 modifier = Modifier.testTag("lastLoggedWeightLabel")
             )
+        }
+
+        if (uiState.hasLoggedDataToday) {
+            OutlinedButton(
+                onClick = { showDiscardConfirm = true },
+                modifier = Modifier.testTag("discardExerciseDataButton")
+            ) {
+                Text("Descartar datos de hoy")
+            }
         }
 
         if (uiState.isComplete) {
@@ -439,6 +451,18 @@ private fun TrainingTab(
         OutlinedButton(onClick = onOpenNotes, modifier = Modifier.testTag("notesButton")) {
             Text("Notas")
         }
+    }
+
+    if (showDiscardConfirm) {
+        ConfirmDialog(
+            title = "¿Descartar datos?",
+            message = "Se borrará lo registrado hoy para este ejercicio. No se puede deshacer.",
+            onConfirm = {
+                showDiscardConfirm = false
+                onDiscardExerciseData()
+            },
+            onCancel = { showDiscardConfirm = false }
+        )
     }
 }
 

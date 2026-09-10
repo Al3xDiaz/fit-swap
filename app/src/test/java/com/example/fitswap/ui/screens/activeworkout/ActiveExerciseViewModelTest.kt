@@ -381,6 +381,41 @@ class ActiveExerciseViewModelTest {
     }
 
     @Test
+    fun `discardExerciseData borra las series de hoy de ese ejercicio y lo deja como si no se hubiera tocado`() = runTest {
+        val setRepository = FakeSetRepository()
+        val historyRepository = FakeHistoryRepository()
+        val viewModel = viewModel(ELEVACIONES_ID, setRepository = setRepository, historyRepository = historyRepository)
+        viewModel.uiState.first { !it.isLoading }
+        repeat(5) { viewModel.registerSet() } // 1 warmup + 4 effective -> completo
+        assertTrue(viewModel.uiState.first().isComplete)
+
+        viewModel.discardExerciseData()
+        val state = viewModel.uiState.first { !it.hasLoggedDataToday }
+
+        assertFalse(state.isComplete)
+        assertEquals(SetType.WARMUP, state.currentSet?.type)
+        assertTrue(setRepository.observeLoggedSets(ELEVACIONES_ID, TODAY).first().isEmpty())
+        assertTrue(historyRepository.observeHistory(ExerciseCatalog.elevacionesLaterales.id).first().isEmpty())
+    }
+
+    @Test
+    fun `discardExerciseData no afecta las series de otro ejercicio del dia`() = runTest {
+        val setRepository = FakeSetRepository()
+        val viewModel = viewModel(ELEVACIONES_ID, setRepository = setRepository)
+        viewModel.uiState.first { !it.isLoading }
+        repeat(5) { viewModel.registerSet() } // completo
+
+        val otherViewModel = viewModel(PRESS_MILITAR_ID, setRepository = setRepository)
+        otherViewModel.uiState.first { !it.isLoading }
+        repeat(2) { otherViewModel.registerSet() } // progreso a medias, ejercicio distinto
+
+        viewModel.discardExerciseData()
+
+        assertTrue(setRepository.observeLoggedSets(ELEVACIONES_ID, TODAY).first().isEmpty())
+        assertEquals(2, setRepository.observeLoggedSets(PRESS_MILITAR_ID, TODAY).first().size)
+    }
+
+    @Test
     fun `una serie registrada sobrevive a que se recree el viewmodel sin completar el ejercicio`() = runTest {
         val setRepository = FakeSetRepository()
         val firstViewModel = viewModel(ELEVACIONES_ID, setRepository = setRepository)

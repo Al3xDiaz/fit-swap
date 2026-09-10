@@ -87,4 +87,20 @@ class ActiveExerciseFlowTest {
 
         composeTestRule.onNodeWithTag("appTopBarTitle").assertTextEquals("Rutinas")
     }
+
+    @Test
+    fun completarUnEjercicioYLuegoDescartarSusDatosLoDejaComoAntesDeEmpezarlo() {
+        composeTestRule.onNodeWithTag("routineListItem_default").performClick()
+        composeTestRule.onNodeWithTag("startWorkoutButton_default-martes").performClick()
+        composeTestRule.onNodeWithTag("nextExerciseButton").performClick() // saltar el calentamiento
+        composeTestRule.onNodeWithTag("appTopBarTitle").assertTextEquals("Elevaciones laterales")
+
+        repeat(5) { composeTestRule.onNodeWithTag("registerSetButton").performClick() } // 1 warmup + 4 effective
+        composeTestRule.onNodeWithTag("exerciseCompleteLabel").assertIsDisplayed()
+
+        composeTestRule.onNodeWithTag("discardExerciseDataButton").performClick()
+        composeTestRule.onNodeWithText("Confirmar").performClick()
+
+        composeTestRule.onNodeWithTag("currentStageLabel").assertTextEquals("Calentamiento")
+    }
 }

@@ -92,6 +92,10 @@ data class ActiveExerciseUiState(
     val restRemainingSeconds: Int? = null,
     val restTotalSeconds: Int = 0,
     val isComplete: Boolean = false,
+    /** Hay al menos una serie registrada hoy para este ejercicio (completo o a medias) — solo
+     * tiene sentido para [ExerciseType.STRENGTH]. Habilita el botón "Descartar datos de hoy"
+     * (ver [discardExerciseData]). */
+    val hasLoggedDataToday: Boolean = false,
     /** Cuenta regresiva (3, 2, 1) que arranca sola al completar la última serie planificada;
      * al llegar a 0 (o si se toca antes el botón "Completar ejercicio") se guardan en bloque
      * todas las series de la sesión — hasta entonces no se persistió nada (ver [registerSet]). */
@@ -548,6 +552,28 @@ class ActiveExerciseViewModel @Inject constructor(
         viewModelScope.launch { workoutSessionRepository.clearAll() }
     }
 
+    /** Descarta todo lo registrado **hoy** para este ejercicio (completo o a medias) y lo deja
+     * como si no se hubiera tocado — a diferencia de [endRoutine], no toca otros ejercicios ni
+     * termina la rutina. Sirve tanto para rehacer un ejercicio dentro del mismo día como para
+     * destrabar uno que quedó "completado" de una sesión previa antes de este fix. */
+    fun discardExerciseData() {
+        val exercise = routineExercise ?: return
+        val displayExercise = substitutedExercise ?: exercise.exercise
+        completionCountdownJob?.cancel()
+        completionCountdownJob = null
+        viewModelScope.launch {
+            val today = currentDateProvider.today()
+            setRepository.deleteLoggedSetsForDate(exercise.id, today)
+            historyRepository.deleteHistoryForDate(displayExercise.id, today)
+            sessionLoggedSetIds.clear()
+            sessionHistoryPointIds.clear()
+            planIndex = 0
+            loggedSetSeq = 0
+            manualStageWeightOverrideKg = null
+            refreshUiState()
+        }
+    }
+
     private fun refreshUiState() {
         val exercise = routineExercise ?: return
         val displayExercise = substitutedExercise ?: exercise.exercise
@@ -578,6 +604,7 @@ class ActiveExerciseViewModel @Inject constructor(
                 effectiveSetsDone = effectiveSetsDone,
                 effectiveSetsTotal = effectiveSetsTotal,
                 isComplete = current == null,
+                hasLoggedDataToday = planIndex > 0,
             )
         }
 
