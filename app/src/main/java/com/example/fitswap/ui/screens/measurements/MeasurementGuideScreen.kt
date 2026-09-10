@@ -15,61 +15,26 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.unit.dp
+import com.example.fitswap.domain.model.MeasurementField
 import com.example.fitswap.ui.common.AppTopBar
 import com.example.fitswap.ui.common.BackNavigationIcon
 
-private data class MeasurementGuideItem(
-    val id: String,
-    val title: String,
-    val instruction: String,
-)
-
-/** El peso se excluye a propósito — no es una circunferencia, no tiene técnica que explicar. */
-private val guideItems = listOf(
-    MeasurementGuideItem(
-        "neck", "Cuello",
-        "Cinta justo debajo de la laringe (nuez de Adán), ligeramente inclinada hacia abajo por delante."
-    ),
-    MeasurementGuideItem(
-        "waist", "Cintura",
-        "A la altura del ombligo o el punto más angosto del torso, sin contraer el abdomen, al final de una exhalación normal."
-    ),
-    MeasurementGuideItem(
-        "hip", "Cadera",
-        "En el punto más ancho de los glúteos, de pie con los pies juntos."
-    ),
-    MeasurementGuideItem(
-        "chest", "Pecho",
-        "A la altura de los pezones, cinta paralela al piso, en una respiración normal (sin inhalar ni exhalar al máximo)."
-    ),
-    MeasurementGuideItem(
-        "arm", "Brazo",
-        "En el punto más ancho del bíceps contraído, con el brazo paralelo al piso."
-    ),
-    MeasurementGuideItem(
-        "leg", "Pierna",
-        "En el punto más ancho del muslo, justo debajo del glúteo, de pie con el peso repartido en ambas piernas."
-    ),
-    MeasurementGuideItem(
-        "calf", "Pantorrilla",
-        "En el punto más ancho, de pie con el peso repartido en ambas piernas."
-    ),
-    MeasurementGuideItem(
-        "glute", "Glúteo",
-        "En el punto más ancho de los glúteos (mismo punto que cadera, pero mirando específicamente el volumen glúteo)."
-    ),
-    MeasurementGuideItem(
-        "forearm", "Antebrazo",
-        "En el punto más ancho, cerca del codo, con el puño cerrado y el antebrazo flexionado."
-    ),
-    MeasurementGuideItem(
-        "shoulder", "Hombro",
-        "Rodeando la parte más ancha, pasando por ambos deltoides, cinta paralela al piso."
-    ),
-    MeasurementGuideItem(
-        "wrist", "Muñeca",
-        "Justo debajo del hueso saliente (apófisis estiloides), en el punto más delgado."
-    ),
+/** Instrucción de técnica por campo — título/id salen de [MeasurementField] (compartido con el
+ * selector de campos del stepper de "Nueva medición"), así las 11 medidas no quedan duplicadas en
+ * dos listas. El peso se excluye a propósito: no es una circunferencia, no tiene técnica que
+ * explicar, y no forma parte de [MeasurementField]. */
+private val instructionByField = mapOf(
+    MeasurementField.NECK to "Cinta justo debajo de la laringe (nuez de Adán), ligeramente inclinada hacia abajo por delante.",
+    MeasurementField.WAIST to "A la altura del ombligo o el punto más angosto del torso, sin contraer el abdomen, al final de una exhalación normal.",
+    MeasurementField.HIP to "En el punto más ancho de los glúteos, de pie con los pies juntos.",
+    MeasurementField.CHEST to "A la altura de los pezones, cinta paralela al piso, en una respiración normal (sin inhalar ni exhalar al máximo).",
+    MeasurementField.ARM to "En el punto más ancho del bíceps contraído, con el brazo paralelo al piso.",
+    MeasurementField.LEG to "En el punto más ancho del muslo, justo debajo del glúteo, de pie con el peso repartido en ambas piernas.",
+    MeasurementField.CALF to "En el punto más ancho, de pie con el peso repartido en ambas piernas.",
+    MeasurementField.GLUTE to "En el punto más ancho de los glúteos (mismo punto que cadera, pero mirando específicamente el volumen glúteo).",
+    MeasurementField.FOREARM to "En el punto más ancho, cerca del codo, con el puño cerrado y el antebrazo flexionado.",
+    MeasurementField.SHOULDER to "Rodeando la parte más ancha, pasando por ambos deltoides, cinta paralela al piso.",
+    MeasurementField.WRIST to "Justo debajo del hueso saliente (apófisis estiloides), en el punto más delgado.",
 )
 
 @Composable
@@ -97,15 +62,15 @@ fun MeasurementGuideScreen(onBack: () -> Unit) {
                     HorizontalDivider(modifier = Modifier.padding(top = 12.dp, bottom = 4.dp))
                 }
             }
-            items(guideItems, key = { it.id }) { item ->
+            items(MeasurementField.entries, key = { it.tag }) { field ->
                 Column(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .testTag("measurementGuideItem_${item.id}")
+                        .testTag("measurementGuideItem_${field.tag}")
                         .padding(vertical = 8.dp)
                 ) {
-                    Text(item.title, style = MaterialTheme.typography.titleMedium)
-                    Text(item.instruction, style = MaterialTheme.typography.bodyMedium)
+                    Text(field.label, style = MaterialTheme.typography.titleMedium)
+                    Text(instructionByField.getValue(field), style = MaterialTheme.typography.bodyMedium)
                 }
                 HorizontalDivider()
             }

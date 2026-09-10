@@ -3,11 +3,13 @@ package com.example.fitswap.ui.screens.measurements
 import com.example.fitswap.MainDispatcherRule
 import com.example.fitswap.data.repository.fake.FakeBodyMeasurementRepository
 import com.example.fitswap.data.time.CurrentDateProvider
+import com.example.fitswap.domain.model.MeasurementField
 import java.time.LocalDate
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
+import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
@@ -85,5 +87,51 @@ class AddBodyMeasurementViewModelTest {
         assertEquals(27.0, entry.forearmCm)
         assertEquals(112.0, entry.shoulderCm)
         assertEquals(16.5, entry.wristCm)
+    }
+
+    @Test
+    fun `arranca en el paso de seleccion de campos, sin ninguno elegido`() = runTest {
+        val state = viewModel().uiState.first()
+
+        assertEquals(AddMeasurementStep.SELECT_FIELDS, state.step)
+        assertTrue(state.selectedFields.isEmpty())
+    }
+
+    @Test
+    fun `toggleField agrega y luego quita el campo del set`() = runTest {
+        val viewModel = viewModel()
+
+        viewModel.toggleField(MeasurementField.NECK)
+        assertEquals(setOf(MeasurementField.NECK), viewModel.uiState.first().selectedFields)
+
+        viewModel.toggleField(MeasurementField.NECK)
+        assertTrue(viewModel.uiState.first().selectedFields.isEmpty())
+    }
+
+    @Test
+    fun `goToForm y goBackToFieldSelection cambian el paso`() = runTest {
+        val viewModel = viewModel()
+
+        viewModel.goToForm()
+        assertEquals(AddMeasurementStep.FORM, viewModel.uiState.first().step)
+
+        viewModel.goBackToFieldSelection()
+        assertEquals(AddMeasurementStep.SELECT_FIELDS, viewModel.uiState.first().step)
+    }
+
+    @Test
+    fun `deseleccionar un campo despues de escribirle texto lo deja sin guardar`() = runTest {
+        val measurementRepository = FakeBodyMeasurementRepository()
+        val viewModel = viewModel(measurementRepository)
+        viewModel.toggleField(MeasurementField.NECK)
+        viewModel.onWeightChanged("80.5")
+        viewModel.onNeckChanged("38") // el usuario completa el campo...
+
+        viewModel.toggleField(MeasurementField.NECK) // ...y se arrepiente, lo deselecciona
+
+        assertEquals("", viewModel.uiState.first().neckCm) // el texto viejo no queda como basura
+        val saved = viewModel.save()
+        assertTrue(saved)
+        assertNull(measurementRepository.observeMeasurements().first().first().neckCm)
     }
 }

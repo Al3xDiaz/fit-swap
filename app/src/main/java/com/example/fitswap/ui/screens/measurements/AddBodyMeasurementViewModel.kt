@@ -5,6 +5,7 @@ import androidx.lifecycle.viewModelScope
 import com.example.fitswap.data.repository.BodyMeasurementRepository
 import com.example.fitswap.data.time.CurrentDateProvider
 import com.example.fitswap.domain.model.BodyMeasurementEntry
+import com.example.fitswap.domain.model.MeasurementField
 import dagger.hilt.android.lifecycle.HiltViewModel
 import javax.inject.Inject
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -12,7 +13,11 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 
+enum class AddMeasurementStep { SELECT_FIELDS, FORM }
+
 data class AddBodyMeasurementUiState(
+    val step: AddMeasurementStep = AddMeasurementStep.SELECT_FIELDS,
+    val selectedFields: Set<MeasurementField> = emptySet(),
     val weightKg: String = "",
     val neckCm: String = "",
     val waistCm: String = "",
@@ -39,6 +44,25 @@ class AddBodyMeasurementViewModel @Inject constructor(
 
     private val _uiState = MutableStateFlow(AddBodyMeasurementUiState())
     val uiState: StateFlow<AddBodyMeasurementUiState> = _uiState.asStateFlow()
+
+    /** Alterna [field] en la selección del primer paso — al deseleccionarlo, limpia el texto que
+     * hubiera quedado cargado en ese campo (si el usuario lo completó, volvió atrás y se arrepintió). */
+    fun toggleField(field: MeasurementField) {
+        _uiState.update { state ->
+            val selected = state.selectedFields
+            val newSelected = if (field in selected) selected - field else selected + field
+            val cleared = if (field !in newSelected) state.withFieldCleared(field) else state
+            cleared.copy(selectedFields = newSelected)
+        }
+    }
+
+    fun goToForm() {
+        _uiState.update { it.copy(step = AddMeasurementStep.FORM) }
+    }
+
+    fun goBackToFieldSelection() {
+        _uiState.update { it.copy(step = AddMeasurementStep.SELECT_FIELDS) }
+    }
 
     fun onWeightChanged(value: String) {
         _uiState.update { it.copy(weightKg = value) }
@@ -114,3 +138,18 @@ class AddBodyMeasurementViewModel @Inject constructor(
         return true
     }
 }
+
+private fun AddBodyMeasurementUiState.withFieldCleared(field: MeasurementField): AddBodyMeasurementUiState =
+    when (field) {
+        MeasurementField.NECK -> copy(neckCm = "")
+        MeasurementField.WAIST -> copy(waistCm = "")
+        MeasurementField.HIP -> copy(hipCm = "")
+        MeasurementField.CHEST -> copy(chestCm = "")
+        MeasurementField.ARM -> copy(armCm = "")
+        MeasurementField.LEG -> copy(legCm = "")
+        MeasurementField.CALF -> copy(calfCm = "")
+        MeasurementField.GLUTE -> copy(gluteCm = "")
+        MeasurementField.FOREARM -> copy(forearmCm = "")
+        MeasurementField.SHOULDER -> copy(shoulderCm = "")
+        MeasurementField.WRIST -> copy(wristCm = "")
+    }

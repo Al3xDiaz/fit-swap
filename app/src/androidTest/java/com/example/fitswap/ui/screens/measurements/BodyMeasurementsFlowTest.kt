@@ -48,6 +48,11 @@ class BodyMeasurementsFlowTest {
         composeTestRule.onAllNodesWithTag("profileIncompleteHint").assertCountEquals(0)
 
         composeTestRule.onNodeWithTag("addMeasurementButton").performClick()
+        // Paso 1 del stepper: elegir qué circunferencias se van a medir antes de ver sus campos.
+        composeTestRule.onNodeWithTag("fieldOption_neck").performClick()
+        composeTestRule.onNodeWithTag("fieldOption_waist").performClick()
+        composeTestRule.onNodeWithTag("nextStepButton").performClick()
+
         composeTestRule.onNodeWithTag("weightField").performTextInput("81")
         composeTestRule.onNodeWithTag("neckField").performTextInput("38")
         composeTestRule.onNodeWithTag("waistField").performTextInput("85")
@@ -79,6 +84,33 @@ class BodyMeasurementsFlowTest {
 
         composeTestRule.onNodeWithContentDescription("Volver").performClick()
         composeTestRule.onNodeWithTag("appTopBarTitle").assertTextEquals("Nueva medición")
-        composeTestRule.onNodeWithTag("weightField").assertIsDisplayed()
+        composeTestRule.onNodeWithTag("nextStepButton").assertIsDisplayed()
+    }
+
+    @Test
+    fun elStepperSoloMuestraLosCamposElegidosYDeseleccionarUnoNoLoGuarda() {
+        composeTestRule.onNodeWithContentDescription("Abrir menú").performClick()
+        composeTestRule.onNodeWithTag("drawerItem_measurements").performClick()
+        composeTestRule.onNodeWithTag("addMeasurementButton").performClick()
+
+        composeTestRule.onNodeWithTag("fieldOption_neck").performClick()
+        composeTestRule.onNodeWithTag("fieldOption_waist").performClick()
+        composeTestRule.onNodeWithTag("nextStepButton").performClick()
+
+        // Solo aparecen los campos elegidos, no las otras 9 circunferencias.
+        composeTestRule.onNodeWithTag("neckField").assertIsDisplayed()
+        composeTestRule.onNodeWithTag("waistField").assertIsDisplayed()
+        composeTestRule.onAllNodesWithTag("hipField").assertCountEquals(0)
+
+        // Volver atrás, deseleccionar cintura y confirmar que no se guarda con la medición.
+        composeTestRule.onNodeWithTag("backToFieldSelectionButton").performClick()
+        composeTestRule.onNodeWithTag("fieldOption_waist").performClick()
+        composeTestRule.onNodeWithTag("nextStepButton").performClick()
+        composeTestRule.onAllNodesWithTag("waistField").assertCountEquals(0)
+
+        composeTestRule.onNodeWithTag("weightField").performTextInput("70")
+        closeSoftKeyboard()
+        composeTestRule.onNodeWithTag("saveMeasurementButton").performScrollTo().performClick()
+        composeTestRule.waitUntilTagExists("addMeasurementButton")
     }
 }
