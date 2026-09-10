@@ -11,6 +11,7 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
@@ -43,6 +44,7 @@ private val dateFormatter = DateTimeFormatter.ofPattern("dd/MM/yyyy")
 fun BodyMeasurementsScreen(
     onMenuClick: () -> Unit,
     onAddMeasurement: () -> Unit,
+    onEditMeasurement: (measurementId: String) -> Unit,
     viewModel: BodyMeasurementsViewModel = hiltViewModel(),
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
@@ -83,7 +85,11 @@ fun BodyMeasurementsScreen(
             } else {
                 LazyColumn(verticalArrangement = Arrangement.spacedBy(12.dp)) {
                     items(uiState.rows, key = { it.entry.id }) { row ->
-                        MeasurementRow(row, onDelete = { viewModel.deleteMeasurement(row.entry.id) })
+                        MeasurementRow(
+                            row,
+                            onEdit = { onEditMeasurement(row.entry.id) },
+                            onDelete = { viewModel.deleteMeasurement(row.entry.id) },
+                        )
                     }
                     if (uiState.muscleFocusRatios.isNotEmpty()) {
                         item { MuscleFocusSection(uiState.muscleFocusRatios) }
@@ -95,7 +101,7 @@ fun BodyMeasurementsScreen(
 }
 
 @Composable
-private fun MeasurementRow(row: BodyMeasurementRow, onDelete: () -> Unit) {
+private fun MeasurementRow(row: BodyMeasurementRow, onEdit: () -> Unit, onDelete: () -> Unit) {
     var showDeleteConfirm by remember { mutableStateOf(false) }
 
     Row(
@@ -120,6 +126,9 @@ private fun MeasurementRow(row: BodyMeasurementRow, onDelete: () -> Unit) {
                 style = MaterialTheme.typography.bodyMedium,
                 modifier = Modifier.testTag("bodyFatLabel_${row.entry.id}")
             )
+        }
+        IconButton(onClick = onEdit, modifier = Modifier.testTag("editMeasurementButton_${row.entry.id}")) {
+            Icon(Icons.Default.Edit, contentDescription = "Editar medición")
         }
         IconButton(
             onClick = { showDeleteConfirm = true },

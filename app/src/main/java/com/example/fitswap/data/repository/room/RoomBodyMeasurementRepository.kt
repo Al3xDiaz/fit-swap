@@ -23,6 +23,10 @@ class RoomBodyMeasurementRepository @Inject constructor(
         bodyMeasurementDao.insert(entry.toEntity())
     }
 
+    override suspend fun updateMeasurement(entry: BodyMeasurementEntry) {
+        bodyMeasurementDao.insert(entry.toEntity()) // upsert por id (REPLACE), igual que addMeasurement
+    }
+
     override suspend fun deleteMeasurement(id: String) {
         bodyMeasurementDao.delete(id)
     }

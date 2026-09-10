@@ -111,6 +111,7 @@ fun AppNavHost(navController: NavHostController = rememberNavController()) {
                 onMenuClick = { scope.launch { drawerState.open() } }
             )
             addBodyMeasurementScreen(navController = navController)
+            measurementEditScreen(navController = navController)
             measurementGuideScreen(navController = navController)
 
             topLevelDestinations

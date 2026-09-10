@@ -10,6 +10,7 @@ import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollTo
+import androidx.compose.ui.test.performTextClearance
 import androidx.compose.ui.test.performTextInput
 import androidx.test.espresso.Espresso.closeSoftKeyboard
 import com.example.fitswap.MainActivity
@@ -112,5 +113,30 @@ class BodyMeasurementsFlowTest {
         closeSoftKeyboard()
         composeTestRule.onNodeWithTag("saveMeasurementButton").performScrollTo().performClick()
         composeTestRule.waitUntilTagExists("addMeasurementButton")
+    }
+
+    @Test
+    fun editarUnaMedicionYaListadaActualizaSuImc() {
+        composeTestRule.onNodeWithContentDescription("Abrir menú").performClick()
+        composeTestRule.onNodeWithTag("drawerItem_settings").performClick()
+        composeTestRule.onNodeWithTag("sexOption_MALE").performClick()
+        composeTestRule.onNodeWithTag("heightField").performTextInput("180")
+        closeSoftKeyboard()
+
+        composeTestRule.onNodeWithContentDescription("Abrir menú").performClick()
+        composeTestRule.onNodeWithTag("drawerItem_measurements").performClick()
+        // "seed-2" es la medición sembrada más reciente (76.5 kg) — con 1.80 m da IMC normal.
+        composeTestRule.onNodeWithTag("bmiLabel_seed-2").assertTextEquals("IMC: 23.6 (normal)")
+
+        composeTestRule.onNodeWithTag("editMeasurementButton_seed-2").performClick()
+        composeTestRule.onNodeWithTag("appTopBarTitle").assertTextEquals("Editar medición")
+        composeTestRule.onNodeWithTag("editWeightField").performTextClearance()
+        composeTestRule.onNodeWithTag("editWeightField").performTextInput("82")
+        closeSoftKeyboard()
+        composeTestRule.onNodeWithTag("saveMeasurementEditButton").performScrollTo().performClick()
+
+        // Vuelve a Medidas — el mismo id refleja el peso nuevo, sin duplicar la fila.
+        composeTestRule.waitUntilTagExists("bmiLabel_seed-2")
+        composeTestRule.onNodeWithTag("bmiLabel_seed-2").assertTextEquals("IMC: 25.3 (sobrepeso)")
     }
 }

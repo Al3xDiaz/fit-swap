@@ -18,11 +18,23 @@ class FakeBodyMeasurementRepository @Inject constructor() : BodyMeasurementRepos
     override fun observeMeasurements(): Flow<List<BodyMeasurementEntry>> = measurements.asStateFlow()
 
     override suspend fun addMeasurement(entry: BodyMeasurementEntry) {
-        measurements.update { current -> (current + entry).sortedByDescending { it.date } }
+        upsert(entry)
+    }
+
+    override suspend fun updateMeasurement(entry: BodyMeasurementEntry) {
+        upsert(entry)
     }
 
     override suspend fun deleteMeasurement(id: String) {
         measurements.update { current -> current.filterNot { it.id == id } }
+    }
+
+    /** Upsert por id, igual que hace Room con `OnConflictStrategy.REPLACE` — reemplaza la
+     * medición existente con el mismo id en vez de duplicarla. */
+    private fun upsert(entry: BodyMeasurementEntry) {
+        measurements.update { current ->
+            (current.filterNot { it.id == entry.id } + entry).sortedByDescending { it.date }
+        }
     }
 }
 
