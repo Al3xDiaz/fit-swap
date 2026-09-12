@@ -3,7 +3,9 @@ package com.example.fitswap.ui.screens.activeworkout
 import androidx.compose.ui.test.assertTextEquals
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
 import androidx.compose.ui.test.onNodeWithTag
+import android.Manifest
 import androidx.compose.ui.test.performClick
+import androidx.test.rule.GrantPermissionRule
 import com.example.fitswap.MainActivity
 import dagger.hilt.android.testing.HiltAndroidRule
 import dagger.hilt.android.testing.HiltAndroidTest
@@ -17,6 +19,12 @@ class SwapExerciseFlowTest {
     @get:Rule(order = 0)
     val hiltRule = HiltAndroidRule(this)
 
+    // La pantalla de ejercicio activo pide POST_NOTIFICATIONS al abrirse (timer en foreground
+    // service) — sin otorgarlo de antemano, el diálogo del sistema tapa la app y Compose deja de
+    // encontrar la jerarquía.
+    @get:Rule(order = 0)
+    val permissionRule: GrantPermissionRule = GrantPermissionRule.grant(Manifest.permission.POST_NOTIFICATIONS)
+
     @get:Rule(order = 1)
     val composeTestRule = createAndroidComposeRule<MainActivity>()
 
@@ -27,7 +35,6 @@ class SwapExerciseFlowTest {
 
     @Test
     fun elegirUnSustitutoReemplazaElEjercicioEnCursoSinSalirDeLaPantalla() {
-        composeTestRule.onNodeWithTag("routineListItem_default").performClick()
         // Por defecto se abre el día de hoy (fijado a martes/Push en los tests, ver TestDateModule) —
         // cambiamos a Jueves/Legs con el selector de día.
         composeTestRule.onNodeWithTag("changeDayButton").performClick()

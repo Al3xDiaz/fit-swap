@@ -31,7 +31,7 @@ class RoutineFlowTest {
 
     @Test
     fun tocarUnaRutinaAbreSuDetalle() {
-        composeTestRule.onNodeWithTag("routineListItem_default").performClick()
+        composeTestRule.onNodeWithTag("defaultRoutineCard").performClick()
 
         composeTestRule.onNodeWithTag("appTopBarTitle").assertTextEquals("PPL + Upper/Accesorios")
     }

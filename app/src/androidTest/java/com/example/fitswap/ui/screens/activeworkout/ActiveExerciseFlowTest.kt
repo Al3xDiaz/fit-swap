@@ -6,7 +6,9 @@ import androidx.compose.ui.test.junit4.createAndroidComposeRule
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
+import android.Manifest
 import androidx.test.espresso.Espresso
+import androidx.test.rule.GrantPermissionRule
 import com.example.fitswap.MainActivity
 import com.example.fitswap.waitUntilTagExists
 import dagger.hilt.android.testing.HiltAndroidRule
@@ -21,6 +23,12 @@ class ActiveExerciseFlowTest {
     @get:Rule(order = 0)
     val hiltRule = HiltAndroidRule(this)
 
+    // La pantalla de ejercicio activo pide POST_NOTIFICATIONS al abrirse (timer en foreground
+    // service) — sin otorgarlo de antemano, el diálogo del sistema tapa la app y Compose deja de
+    // encontrar la jerarquía.
+    @get:Rule(order = 0)
+    val permissionRule: GrantPermissionRule = GrantPermissionRule.grant(Manifest.permission.POST_NOTIFICATIONS)
+
     @get:Rule(order = 1)
     val composeTestRule = createAndroidComposeRule<MainActivity>()
 
@@ -31,7 +39,6 @@ class ActiveExerciseFlowTest {
 
     @Test
     fun registrarUnaSerieArrancaElTimerYAvanzaElContador() {
-        composeTestRule.onNodeWithTag("routineListItem_default").performClick()
         composeTestRule.onNodeWithTag("startWorkoutButton_default-martes").performClick()
 
         // El día ahora arranca con un calentamiento de cardio (rutina sembrada) — saltarlo para
@@ -56,7 +63,6 @@ class ActiveExerciseFlowTest {
 
     @Test
     fun elBotonSiguienteAvanzaDeEjercicioSinTerminarElActual() {
-        composeTestRule.onNodeWithTag("routineListItem_default").performClick()
         composeTestRule.onNodeWithTag("startWorkoutButton_default-martes").performClick()
         // El día arranca en el calentamiento de cardio (rutina sembrada).
         composeTestRule.onNodeWithTag("appTopBarTitle").assertTextEquals("Elíptica")
@@ -74,7 +80,6 @@ class ActiveExerciseFlowTest {
 
     @Test
     fun volverDesdeEjercicioActivoPideConfirmacionYTerminaLaRutina() {
-        composeTestRule.onNodeWithTag("routineListItem_default").performClick()
         composeTestRule.onNodeWithTag("startWorkoutButton_default-martes").performClick()
         // El calentamiento del día es cardio, no fuerza — esperar su botón de inicio en vez de
         // "registerSetButton" (que solo existe en la pestaña de fuerza).
@@ -91,7 +96,6 @@ class ActiveExerciseFlowTest {
 
     @Test
     fun completarUnEjercicioYLuegoDescartarSusDatosLoDejaComoAntesDeEmpezarlo() {
-        composeTestRule.onNodeWithTag("routineListItem_default").performClick()
         composeTestRule.onNodeWithTag("startWorkoutButton_default-martes").performClick()
         composeTestRule.onNodeWithTag("nextExerciseButton").performClick() // saltar el calentamiento
         composeTestRule.onNodeWithTag("appTopBarTitle").assertTextEquals("Elevaciones laterales")
@@ -107,7 +111,6 @@ class ActiveExerciseFlowTest {
 
     @Test
     fun descartarLaRutinaPorElBackBorraElProgresoYNoQuedaGuardadoAlReabrir() {
-        composeTestRule.onNodeWithTag("routineListItem_default").performClick()
         composeTestRule.onNodeWithTag("startWorkoutButton_default-martes").performClick()
         composeTestRule.onNodeWithTag("nextExerciseButton").performClick() // saltar el calentamiento
         composeTestRule.onNodeWithTag("appTopBarTitle").assertTextEquals("Elevaciones laterales")
@@ -118,7 +121,6 @@ class ActiveExerciseFlowTest {
         composeTestRule.onNodeWithTag("appTopBarTitle").assertTextEquals("Rutinas")
 
         // Reabrir la misma rutina: el ejercicio no debe conservar la serie descartada.
-        composeTestRule.onNodeWithTag("routineListItem_default").performClick()
         composeTestRule.onNodeWithTag("startWorkoutButton_default-martes").performClick()
         composeTestRule.onNodeWithTag("nextExerciseButton").performClick()
         composeTestRule.onNodeWithTag("appTopBarTitle").assertTextEquals("Elevaciones laterales")

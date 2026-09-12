@@ -7,7 +7,9 @@ import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performTextClearance
+import android.Manifest
 import androidx.compose.ui.test.performTextInput
+import androidx.test.rule.GrantPermissionRule
 import com.example.fitswap.MainActivity
 import com.example.fitswap.waitUntilTagExists
 import dagger.hilt.android.testing.HiltAndroidRule
@@ -27,6 +29,12 @@ class CardioHistoryFlowTest {
     @get:Rule(order = 0)
     val hiltRule = HiltAndroidRule(this)
 
+    // La pantalla de ejercicio activo pide POST_NOTIFICATIONS al abrirse (timer en foreground
+    // service) — sin otorgarlo de antemano, el diálogo del sistema tapa la app y Compose deja de
+    // encontrar la jerarquía.
+    @get:Rule(order = 0)
+    val permissionRule: GrantPermissionRule = GrantPermissionRule.grant(Manifest.permission.POST_NOTIFICATIONS)
+
     @get:Rule(order = 1)
     val composeTestRule = createAndroidComposeRule<MainActivity>()
 
@@ -38,7 +46,6 @@ class CardioHistoryFlowTest {
     @Test
     fun editarYLuegoEliminarUnaSesionDeCardioDesdeElHistorial() {
         // Completar una sesión real de cardio desde el calentamiento del día Push.
-        composeTestRule.onNodeWithTag("routineListItem_default").performClick()
         composeTestRule.onNodeWithTag("startWorkoutButton_default-martes").performClick()
         composeTestRule.waitUntilTagExists("cardioStartButton")
         composeTestRule.onNodeWithTag("cardioStartButton").performClick()

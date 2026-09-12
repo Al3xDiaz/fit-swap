@@ -3,6 +3,7 @@ package com.example.fitswap.ui.screens.measurements
 import androidx.compose.ui.test.assertCountEquals
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertTextEquals
+import androidx.compose.ui.test.hasTestTag
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
 import androidx.compose.ui.test.onAllNodesWithTag
 import androidx.compose.ui.test.onNodeWithContentDescription
@@ -10,6 +11,7 @@ import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollTo
+import androidx.compose.ui.test.performScrollToNode
 import androidx.compose.ui.test.performTextClearance
 import androidx.compose.ui.test.performTextInput
 import androidx.test.espresso.Espresso.closeSoftKeyboard
@@ -78,9 +80,17 @@ class BodyMeasurementsFlowTest {
 
         composeTestRule.onNodeWithTag("measurementGuideButton").performClick()
         composeTestRule.onNodeWithTag("appTopBarTitle").assertTextEquals("Cómo medir")
+        // La lista es un LazyColumn (11 circunferencias) — los ítems fuera de vista ni existen en
+        // el árbol de semántica todavía, así que hay que scrollear el contenedor hasta el nodo
+        // buscado en vez de un performScrollTo() directo sobre el ítem (que requiere que ya esté
+        // compuesto, como en un Column().verticalScroll()).
+        composeTestRule.onNodeWithTag("measurementGuideList").performScrollToNode(hasTestTag("measurementGuideItem_wrist"))
         composeTestRule.onNodeWithTag("measurementGuideItem_wrist").assertIsDisplayed()
+        composeTestRule.onNodeWithTag("measurementGuideList").performScrollToNode(hasTestTag("measurementGuideItem_glute"))
         composeTestRule.onNodeWithTag("measurementGuideItem_glute").assertIsDisplayed()
+        composeTestRule.onNodeWithTag("measurementGuideList").performScrollToNode(hasTestTag("measurementGuideItem_forearm"))
         composeTestRule.onNodeWithTag("measurementGuideItem_forearm").assertIsDisplayed()
+        composeTestRule.onNodeWithTag("measurementGuideList").performScrollToNode(hasTestTag("measurementGuideItem_shoulder"))
         composeTestRule.onNodeWithTag("measurementGuideItem_shoulder").assertIsDisplayed()
 
         composeTestRule.onNodeWithContentDescription("Volver").performClick()

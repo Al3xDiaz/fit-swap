@@ -11,6 +11,8 @@ import androidx.compose.ui.test.performTextInput
 import androidx.compose.ui.test.performTouchInput
 import androidx.compose.ui.test.swipeLeft
 import androidx.compose.ui.test.swipeRight
+import android.Manifest
+import androidx.test.rule.GrantPermissionRule
 import com.example.fitswap.MainActivity
 import com.example.fitswap.navigation.Destination
 import com.example.fitswap.waitUntilTagExists
@@ -26,6 +28,12 @@ class SessionMenuAndNotesFlowTest {
     @get:Rule(order = 0)
     val hiltRule = HiltAndroidRule(this)
 
+    // La pantalla de ejercicio activo pide POST_NOTIFICATIONS al abrirse (timer en foreground
+    // service) — sin otorgarlo de antemano, el diálogo del sistema tapa la app y Compose deja de
+    // encontrar la jerarquía.
+    @get:Rule(order = 0)
+    val permissionRule: GrantPermissionRule = GrantPermissionRule.grant(Manifest.permission.POST_NOTIFICATIONS)
+
     @get:Rule(order = 1)
     val composeTestRule = createAndroidComposeRule<MainActivity>()
 
@@ -36,7 +44,6 @@ class SessionMenuAndNotesFlowTest {
 
     @Test
     fun cierraElLoopCompletoDeEntrenamientoDePuntaAPunta() {
-        composeTestRule.onNodeWithTag("routineListItem_default").performClick()
         composeTestRule.onNodeWithTag("startWorkoutButton_default-martes").performClick()
         // El día arranca en el calentamiento de cardio (rutina sembrada), no en fuerza.
         composeTestRule.waitUntilTagExists("cardioStartButton")
@@ -75,7 +82,6 @@ class SessionMenuAndNotesFlowTest {
 
     @Test
     fun cancelarTerminarRutinaMantieneElMenuDeSesion() {
-        composeTestRule.onNodeWithTag("routineListItem_default").performClick()
         composeTestRule.onNodeWithTag("startWorkoutButton_default-martes").performClick()
         composeTestRule.waitUntilTagExists("cardioStartButton")
 
@@ -92,7 +98,6 @@ class SessionMenuAndNotesFlowTest {
 
     @Test
     fun elMenuDeSesionSeAbreYCierraConGestoDeSwipe() {
-        composeTestRule.onNodeWithTag("routineListItem_default").performClick()
         composeTestRule.onNodeWithTag("startWorkoutButton_default-martes").performClick()
         composeTestRule.waitUntilTagExists("cardioStartButton")
 
@@ -105,7 +110,6 @@ class SessionMenuAndNotesFlowTest {
 
     @Test
     fun swipeDuranteNotasNoAbreElDrawerDeNavegacion() {
-        composeTestRule.onNodeWithTag("routineListItem_default").performClick()
         composeTestRule.onNodeWithTag("startWorkoutButton_default-martes").performClick()
         composeTestRule.waitUntilTagExists("cardioStartButton")
 
