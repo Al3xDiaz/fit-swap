@@ -38,7 +38,7 @@ class SwapExerciseFlowTest {
         // Por defecto se abre el día de hoy (fijado a martes/Push en los tests, ver TestDateModule) —
         // cambiamos a Jueves/Legs con el selector de día.
         composeTestRule.onNodeWithTag("changeDayButton").performClick()
-        composeTestRule.onNodeWithTag("dayPickerItem_default-jueves").performClick()
+        composeTestRule.onNodeWithTag("weekDayPickerItem_THURSDAY").performClick()
         composeTestRule.onNodeWithTag("startWorkoutButton_default-jueves").performClick()
 
         // El día ahora arranca en el calentamiento de cardio (rutina sembrada) — saltarlo.

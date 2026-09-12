@@ -10,7 +10,12 @@ import androidx.compose.ui.test.onAllNodesWithTag
  * auto-sync de Compose Test espera recomposición/animaciones, no I/O de background arbitrario, así
  * que un `performClick()` seguido de una aserción inmediata puede correr antes de que la consulta
  * termine — usar esto en el primer punto de cada pantalla nueva que dependa de datos cargados así.
+ *
+ * El timeout es generoso (primera corrida real contra un emulador, ver handoff.md) porque
+ * arrancar `RestTimerService`/`CardioTimerService` (foreground service real, no un fake) puede
+ * tardar varios segundos en un emulador headless con renderizado por software, sobre todo cuando
+ * corre como parte de la suite completa y no aislado.
  */
-fun ComposeTestRule.waitUntilTagExists(tag: String, timeoutMillis: Long = 5_000) {
+fun ComposeTestRule.waitUntilTagExists(tag: String, timeoutMillis: Long = 20_000) {
     waitUntil(timeoutMillis) { onAllNodesWithTag(tag).fetchSemanticsNodes().isNotEmpty() }
 }

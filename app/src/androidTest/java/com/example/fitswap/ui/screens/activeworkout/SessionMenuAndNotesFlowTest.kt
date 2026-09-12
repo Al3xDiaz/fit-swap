@@ -1,5 +1,6 @@
 package com.example.fitswap.ui.screens.activeworkout
 
+import androidx.compose.ui.test.assertIsNotDisplayed
 import androidx.compose.ui.test.assertTextEquals
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
 import androidx.compose.ui.test.onNodeWithContentDescription
@@ -68,7 +69,8 @@ class SessionMenuAndNotesFlowTest {
         // Reabrir Notas confirma que quedó guardada.
         composeTestRule.onNodeWithTag("notesButton").performClick()
         composeTestRule.waitUntilTagExists("noteInputField")
-        composeTestRule.onNodeWithTag("noteInputField").assertTextEquals("Ajustar asiento")
+        // El label del campo ("Nota de hoy") también cuenta como texto en la semántica del nodo.
+        composeTestRule.onNodeWithTag("noteInputField").assertTextEquals("Nota de hoy", "Ajustar asiento")
         composeTestRule.onNodeWithContentDescription("Cerrar").performClick()
         composeTestRule.onNodeWithTag("appTopBarTitle").assertTextEquals("Press militar en máquina")
 
@@ -103,6 +105,9 @@ class SessionMenuAndNotesFlowTest {
 
         composeTestRule.onRoot().performTouchInput { swipeRight() }
         composeTestRule.waitUntilTagExists("sessionMenuItem_default-martes-press-militar-maquina")
+        // El offset del drawer anima con un spring después de soltar el gesto — sin esperar a que
+        // asiente, el segundo swipe puede arrancar a mitad de esa animación.
+        composeTestRule.waitForIdle()
 
         composeTestRule.onRoot().performTouchInput { swipeLeft() }
         composeTestRule.waitUntilTagExists("cardioStartButton")
@@ -117,6 +122,8 @@ class SessionMenuAndNotesFlowTest {
         composeTestRule.waitUntilTagExists("noteInputField")
 
         composeTestRule.onRoot().performTouchInput { swipeRight() }
-        composeTestRule.onNodeWithTag("drawerItem_${Destination.Routines.route}").assertDoesNotExist()
+        // ModalNavigationDrawer mantiene su contenido siempre compuesto (solo lo traslada fuera
+        // de pantalla cuando está cerrado) — hay que chequear visibilidad, no existencia.
+        composeTestRule.onNodeWithTag("drawerItem_${Destination.Routines.route}").assertIsNotDisplayed()
     }
 }
