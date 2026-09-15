@@ -34,7 +34,7 @@ default:
         rm -rf cmdline-tools.zip "$ANDROID_SDK_ROOT/cmdline-tools-tmp"
       fi
     - export PATH="$ANDROID_SDK_ROOT/cmdline-tools/latest/bin:$ANDROID_SDK_ROOT/platform-tools:$PATH"
-    - yes | sdkmanager --licenses > /dev/null
+    - yes | sdkmanager --licenses > /dev/null 2>&1 || true
     - sdkmanager "$ANDROID_PLATFORM_PACKAGE" "$ANDROID_BUILD_TOOLS_PACKAGE" "platform-tools" > /dev/null
     - chmod +x ./gradlew
 
