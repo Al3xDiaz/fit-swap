@@ -15,6 +15,7 @@ import androidx.compose.ui.test.swipeRight
 import android.Manifest
 import androidx.test.rule.GrantPermissionRule
 import com.example.fitswap.MainActivity
+import com.example.fitswap.TimerServicesCleanupRule
 import com.example.fitswap.navigation.Destination
 import com.example.fitswap.waitUntilTagExists
 import dagger.hilt.android.testing.HiltAndroidRule
@@ -34,6 +35,12 @@ class SessionMenuAndNotesFlowTest {
     // encontrar la jerarquía.
     @get:Rule(order = 0)
     val permissionRule: GrantPermissionRule = GrantPermissionRule.grant(Manifest.permission.POST_NOTIFICATIONS)
+
+    // El rest timer de este flujo es un foreground service real que no se detiene solo si el test
+    // termina antes de que llegue a cero — sin esto, sigue publicando estado (y contendiendo CPU)
+    // durante los tests siguientes de la suite (ver TimerServicesCleanupRule).
+    @get:Rule(order = 0)
+    val timerCleanupRule = TimerServicesCleanupRule()
 
     @get:Rule(order = 1)
     val composeTestRule = createAndroidComposeRule<MainActivity>()
