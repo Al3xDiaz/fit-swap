@@ -45,7 +45,7 @@ fun SessionDrawerContent(
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     var showFinishConfirm by remember { mutableStateOf(false) }
 
-    ModalDrawerSheet {
+    ModalDrawerSheet(modifier = Modifier.testTag("sessionDrawerSheet")) {
         Text(
             text = uiState.dayName,
             style = MaterialTheme.typography.titleLarge,

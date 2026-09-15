@@ -10,7 +10,7 @@ import androidx.compose.ui.test.onRoot
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performTextInput
 import androidx.compose.ui.test.performTouchInput
-import androidx.compose.ui.test.swipeLeft
+import androidx.compose.ui.test.swipe
 import androidx.compose.ui.test.swipeRight
 import android.Manifest
 import androidx.test.rule.GrantPermissionRule
@@ -116,7 +116,16 @@ class SessionMenuAndNotesFlowTest {
         // asiente, el segundo swipe puede arrancar a mitad de esa animación.
         composeTestRule.waitForIdle()
 
-        composeTestRule.onRoot().performTouchInput { swipeLeft() }
+        // El anchoredDraggable que cierra el drawer vive en el propio drawer sheet, no en el scrim
+        // — un swipeLeft() sobre onRoot() arranca cerca del borde derecho (sobre el scrim) y nunca
+        // llega a moverlo. Arrastrar desde el sheet es el gesto que Material 3 realmente soporta,
+        // pero el swipeLeft() default parte del centro vertical del sheet entero — que cae sobre
+        // uno de los ítems de la lista de ejercicios y dispara su click (navega a otro ejercicio)
+        // en vez de (o además de) cerrar el drawer. Se arrastra a la altura del título del día
+        // (arriba de la lista), la única franja del sheet que no es clickable.
+        composeTestRule.onNodeWithTag("sessionDrawerSheet").performTouchInput {
+            swipe(start = topRight, end = topLeft)
+        }
         composeTestRule.waitUntilTagExists("cardioStartButton")
     }
 
