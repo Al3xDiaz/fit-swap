@@ -55,4 +55,5 @@ Módulo Gradle único (`:app`).
 - [`DESIGN_DOC.md`](DESIGN_DOC.md) — cómo se va a construir (arquitectura, decisiones pendientes)
 - [`DIAGRAMS.md`](DIAGRAMS.md) — diagrama de arquitectura y flujo de pantallas
 - [`TESTING.md`](TESTING.md) — estrategia y convenciones de pruebas (unitarias, integración, aceptación)
+- [`CONTRIBUTING.md`](CONTRIBUTING.md) — convención de ramas (`feat/*`, `fix/*`, ...) y cómo se calcula la versión
 - [`../gym-app-ideas.md`](../gym-app-ideas.md) — notas originales de producto, fuente de todo lo anterior
