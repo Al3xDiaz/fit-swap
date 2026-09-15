@@ -18,8 +18,10 @@ android {
         applicationId = "com.example.fitswap"
         minSdk = 24
         targetSdk = 37
-        versionCode = 1
-        versionName = "1.0"
+        // En CI, el pipeline pasa -PversionName/-PversionCode calculados por GitVersion
+        // (ver .gitlab-ci.yml, job buildRelease). Local: build sin firmar con estos defaults.
+        versionCode = (findProperty("versionCode") as String?)?.toIntOrNull() ?: 1
+        versionName = findProperty("versionName") as String? ?: "1.0"
 
         testInstrumentationRunner = "com.example.fitswap.HiltTestRunner"
     }

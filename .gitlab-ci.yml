@@ -12,8 +12,11 @@ variables:
   GRADLE_USER_HOME: "$CI_PROJECT_DIR/.gradle"
 
 stages:
+  - version
   - build
   - test
+  - release
+  - publish
 
 default:
   cache:
@@ -38,6 +41,25 @@ default:
     - sdkmanager "$ANDROID_PLATFORM_PACKAGE" "$ANDROID_BUILD_TOOLS_PACKAGE" "platform-tools" > /dev/null
     - chmod +x ./gradlew
 
+version:
+  stage: version
+  image:
+    name: gittools/gitversion:6.8.2
+    entrypoint: [""]
+  variables:
+    GIT_DEPTH: "0"
+    GIT_CONFIG_COUNT: "1"
+    GIT_CONFIG_KEY_0: "safe.directory"
+    GIT_CONFIG_VALUE_0: "*"
+  before_script: []
+  cache: []
+  script:
+    - echo "SEM_VER=$(/tools/dotnet-gitversion $CI_PROJECT_DIR /nofetch /showvariable SemVer)" >> version.env
+    - cat version.env
+  artifacts:
+    reports:
+      dotenv: version.env
+
 assembleDebug:
   stage: build
   script:
@@ -50,13 +72,19 @@ assembleDebug:
 unitTests:
   stage: test
   script:
-    - ./gradlew test --no-daemon
+    - ./gradlew test createDebugUnitTestCoverageReport --no-daemon
+    - >
+      grep -oE '<counter type="LINE" missed="[0-9]+" covered="[0-9]+"/>'
+      app/build/reports/coverage/test/debug/report.xml | tail -1 |
+      awk -F'"' '{printf "Coverage: %.1f%%\n", ($6/($4+$6))*100}'
+  coverage: '/Coverage: (\d+\.\d+)%/'
   artifacts:
     when: always
     reports:
       junit: app/build/test-results/**/TEST-*.xml
     paths:
       - app/build/reports/tests
+      - app/build/reports/coverage
     expire_in: 1 week
 
 lint:
@@ -69,3 +97,47 @@ lint:
       - app/build/reports/lint-results*.html
       - app/build/reports/lint-results*.xml
     expire_in: 1 week
+
+buildRelease:
+  stage: release
+  rules:
+    - if: '$CI_COMMIT_BRANCH == "main"'
+  script:
+    - mkdir -p keystore
+    - echo "$KEYSTORE_JKS_BASE64" | base64 -d > keystore/fitswap-release.jks
+    - |
+      cat > keystore/keystore.properties <<KEYSTORE_EOF
+      storeFile=fitswap-release.jks
+      storePassword=$KEYSTORE_PASSWORD
+      keyAlias=$KEY_ALIAS
+      keyPassword=$KEY_PASSWORD
+      KEYSTORE_EOF
+    - ./gradlew assembleRelease -PversionName="$SEM_VER" -PversionCode="$CI_PIPELINE_IID" --no-daemon
+    - >
+      curl --fail --header "JOB-TOKEN: $CI_JOB_TOKEN" --upload-file
+      app/build/outputs/apk/release/app-release.apk
+      "${CI_API_V4_URL}/projects/${CI_PROJECT_ID}/packages/generic/fitswap/${SEM_VER}/app-release.apk"
+  artifacts:
+    paths:
+      - app/build/outputs/apk/release/app-release.apk
+    expire_in: 1 week
+
+createRelease:
+  stage: publish
+  image: registry.gitlab.com/gitlab-org/release-cli:latest
+  rules:
+    - if: '$CI_COMMIT_BRANCH == "main"'
+  before_script: []
+  cache: []
+  script:
+    - echo "Creando release v$SEM_VER"
+  release:
+    tag_name: "v$SEM_VER"
+    description: "Release v$SEM_VER"
+    ref: "$CI_COMMIT_SHA"
+    assets:
+      links:
+        - name: "app-release.apk"
+          url: "${CI_API_V4_URL}/projects/${CI_PROJECT_ID}/packages/generic/fitswap/${SEM_VER}/app-release.apk"
+          direct_asset_path: "/app-release.apk"
+          link_type: "package"
